@@ -4,5 +4,5 @@ mots_fr = [
     'voiture',
     'maison',
     'arbre',
-    # add more words here
+    # a ajouter
 ]
