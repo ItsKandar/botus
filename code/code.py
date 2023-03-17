@@ -15,6 +15,7 @@ guessed_letters = []
 def new_word():
     global word, correct_letters, guessed_letters
     response = requests.get(DICTIONARY_API_URL + str(random.randint(1, 100)))
+    print(response.json())
     data = response.json()
     word = data[0]['word']
     correct_letters = list(set(list(word.lower())))
@@ -35,7 +36,7 @@ new_word()
 #jsp
 @client.event
 async def on_ready():
-    print('Bonjour, je suis {0.user}'.format(client))
+    print('Logged in as {0.user}'.format(client))
 
 # Ping
 @client.event
