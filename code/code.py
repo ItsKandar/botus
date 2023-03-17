@@ -1,6 +1,7 @@
 import discord
 import random
 import requests
+from mots import mots_fr
 
 TOKEN = 'MTA4NjM0NDU3NDY4OTA5NTc0MQ.GOx7nq.7a7JHR_U0oZqUhV1821JzhyspdMBOTjFIN4d1E'
 CHANNEL_ID = 1086348326074593350
@@ -13,13 +14,8 @@ correct_letters = []
 guessed_letters = []
 
 def new_word():
-    global word, correct_letters, guessed_letters
-    response = requests.get(DICTIONARY_API_URL + str(random.randint(1, 100)))
-    print(response.json())
-    data = response.json()
-    word = data[0]['word']
-    correct_letters = list(set(list(word.lower())))
-    guessed_letters = []
+    global word
+    word = random.choice(mots_fr)
     return word
 
 def game_status():
