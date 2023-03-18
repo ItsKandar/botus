@@ -71,7 +71,3 @@ class MyClient(discord.Client):
                 new_word()
 client = MyClient()
 client.run(TOKEN)
-
-#coucou yusan
-#comment ca va?
-#Bien et toi ?
