@@ -83,17 +83,17 @@ class MyClient(discord.Client):
                     tries+=1
                     for letter in message.content.lower():
                         if letter in correct_letters: #verifie que la lettre est dans le mot
-                            if letter in guessed_letters:
+                            if letter in guessed_letters: #verifie que la lettre n'a pas deja ete essayee
                                 pass
-                            else:
+                            else: #si la lettre est correcte et n'a pas deja ete essayee
                                 guessed_letters.append(letter)
                         else:
-                            if letter in guessed_letters:
+                            if letter in guessed_letters: 
                                 pass
-                            else:
-                                guessed_letters.append(letter)
+                            else: #si la lettre est incorrecte et n'a pas deja ete essayee
+                                guessed_letters.append(letter) 
                     else:
-                        await message.channel.send(game_status()+ '\n\n' + str(tries)+ '/6 essais.\n' + str(correct) + ' lettres correctes.\n' + 'Lettres essayées : ' + ', '.join(guessed_letters).upper())
+                        await message.channel.send(game_status()+ '\n\n' + str(tries)+ '/6 essais.\n' + 'Lettres essayées : ' + ', '.join(guessed_letters).upper())
             
             elif message.content.lower() == '$fin': #fini la partie
                 await message.channel.send('Le mot etait "' + word.upper() + '".')
