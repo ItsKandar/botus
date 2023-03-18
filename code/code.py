@@ -4,7 +4,8 @@ import requests
 from mots import mots_fr
 
 TOKEN = 'MTA4NjM0NDU3NDY4OTA5NTc0MQ.GOx7nq.7a7JHR_U0oZqUhV1821JzhyspdMBOTjFIN4d1E'
-CHANNEL_ID = 1086348326074593350
+CHANNEL_ID = 1083664002070089748
+TEST_CHANNEL_ID = 1086348326074593350
 DICTIONARY_API_URL = 'https://api.dictionaryapi.dev/api/v2/entries/fr/'
 
 word = ''
@@ -32,26 +33,27 @@ new_word()
 class MyClient(discord.Client):
     
 
-    #jsp
+    # Confirme la connexion
     async def on_ready(self):
         print('Logged in as', self.user)
 
-    # Ping
+    # Detecte les messages
     async def on_message(self, message):
-        if message.author == self.user:
+        if message.author == self.user: #ne repond pas a lui meme
             return
-
-        if message.content == '$ping':
-            await message.channel.send('Bonjour {}'.format(message.author.mention)+".")
         
-        elif message.channel.id == CHANNEL_ID:
+        elif message.channel.id == CHANNEL_ID or TEST_CHANNEL_ID: #verifie que le channel est bien motus
+
+            if message.content == '$ping': #ping
+                await message.channel.send('Bonjour {}'.format(message.author.mention)+".")
+
             if message.content.lower() == '$help': #help
                 await message.channel.send('Voici la liste des commandes disponibles: \n\n $start : Commence une nouvelle partie \n $mot : Montre le mot \n $fin : Termine la partie \n $mo mo : motus! \n $help : Affiche cette liste')
 
             if message.content.lower() == '$mo mo': #mo mo motus!
                 await message.channel.send('motus!')
 
-            elif message.content.lower() == '$start': #start game
+            elif message.content.lower() == '$start': #commence la partie
                 new_word()
                 await message.channel.send('Nouveau mot: \n' + game_status())
             
@@ -69,8 +71,10 @@ class MyClient(discord.Client):
                     guessed_letters.append(letter)
                     await message.channel.send(game_status())
             
-            elif message.content.lower() == '$fin': #end game
+            elif message.content.lower() == '$fin': #fini la partie
                 await message.channel.send('Le mot etait ' + word + '.')
                 new_word()
+
 client = MyClient()
-client.run(TOKEN)
+
+client.run(TOKEN) #run bot
