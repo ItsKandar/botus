@@ -42,10 +42,13 @@ class MyClient(discord.Client):
             return
 
         if message.content == '$ping':
-            await message.channel.send('Pinging {}'.format(message.author.mention))
+            await message.channel.send('Bonjour {}'.format(message.author.mention)+".")
         
         elif message.channel.id == CHANNEL_ID:
-            if message.content.lower() == '$mo mo':
+            if message.content.lower() == '$help': #help
+                await message.channel.send('Voici la liste des commandes disponibles: \n\n $start : Commence une nouvelle partie \n $mot : Montre le mot \n $fin : Termine la partie \n $mo mo : motus! \n $help : Affiche cette liste')
+
+            if message.content.lower() == '$mo mo': #mo mo motus!
                 await message.channel.send('motus!')
 
             elif message.content.lower() == '$start': #start game
