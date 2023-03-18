@@ -52,19 +52,19 @@ class MyClient(discord.Client):
                 new_word()
                 await message.channel.send('Nouveau mot: \n' + game_status())
             
-            elif message.content.lower() == '$mot': #show word
+            elif message.content.lower() == '$mot': #montre le mot
                 await message.channel.send(game_status())
             
             elif len(message.content) == 1 and message.content.isalpha():
                 letter = message.content.lower()
-                if letter in guessed_letters: #verify if letter has already been guessed
+                if letter in guessed_letters: #verifie si la lettre a deja ete essayee
                     await message.channel.send('Vous avez déjà essayé la lettre ' + ":regional_indicator_"+letter.lower()+":" + '.')
-                elif letter in correct_letters: #verify if letter is in word
-                    guessed_letters.append(letter) #add letter to guessed letters
-                    await message.channel.send(game_status()) #show word status
+                elif letter in correct_letters: #verifie que la lettre est dans le mot
+                    guessed_letters.append(letter)
+                    await message.channel.send(game_status())
                 else:
-                    guessed_letters.append(letter) #add letter to guessed letters
-                    await message.channel.send(game_status()) #show word status
+                    guessed_letters.append(letter)
+                    await message.channel.send(game_status())
             
             elif message.content.lower() == '$fin': #end game
                 await message.channel.send('Le mot etait ' + word + '.')
