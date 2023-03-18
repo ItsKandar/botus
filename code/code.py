@@ -62,7 +62,7 @@ class MyClient(discord.Client):
                 elif letter in correct_letters: #verifie que la lettre est dans le mot
                     guessed_letters.append(letter)
                     await message.channel.send(game_status())
-                else: #OUI
+                else:
                     guessed_letters.append(letter)
                     await message.channel.send(game_status())
             
