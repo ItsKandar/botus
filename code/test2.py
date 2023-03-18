@@ -14,6 +14,8 @@ guessed_letters = []
 def new_word():
     global word
     word = random.choice(mots_fr)
+    correct_letters = list(set(list(word.lower())))
+    guessed_letters = []
     return word
 
 def game_status():
@@ -43,29 +45,29 @@ class MyClient(discord.Client):
             await message.channel.send('Pinging {}'.format(message.author.mention))
         
         elif message.channel.id == CHANNEL_ID:
-            if message.content.lower() == 'mo mo':
+            if message.content.lower() == '$mo mo':
                 await message.channel.send('motus!')
 
-            elif message.content.lower() == 'nouveau mot':
+            elif message.content.lower() == '$start': #start game
                 new_word()
-                await message.channel.send('Nouveau mot: ' + game_status())
+                await message.channel.send('Nouveau mot: \n' + game_status())
             
-            elif message.content.lower() == 'status':
+            elif message.content.lower() == '$mot': #show word
                 await message.channel.send(game_status())
             
             elif len(message.content) == 1 and message.content.isalpha():
                 letter = message.content.lower()
-                if letter in guessed_letters:
-                    await message.channel.send('Vous avez déjà deviné la lettre ' + letter.upper() + '.')
-                elif letter in correct_letters:
-                    guessed_letters.append(letter)
-                    await message.channel.send('Correct! ' + game_status())
+                if letter in guessed_letters: #verify if letter has already been guessed
+                    await message.channel.send('Vous avez déjà essayé la lettre ' + ":regional_indicator_"+letter.lower()+":" + '.')
+                elif letter in correct_letters: #verify if letter is in word
+                    guessed_letters.append(letter) #add letter to guessed letters
+                    await message.channel.send(game_status()) #show word status
                 else:
-                    guessed_letters.append(letter)
-                    await message.channel.send('Incorrect! ' + game_status())
+                    guessed_letters.append(letter) #add letter to guessed letters
+                    await message.channel.send(game_status()) #show word status
             
-            elif message.content.lower() == 'resultat':
-                await message.channel.send('Le mot est ' + word + '.')
-        
+            elif message.content.lower() == '$fin': #end game
+                await message.channel.send('Le mot etait ' + word + '.')
+                new_word()
 client = MyClient()
 client.run(TOKEN)
