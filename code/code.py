@@ -10,14 +10,14 @@ TEST_CHANNEL_ID = 1086348326074593350
 word = ''
 correct_letters = []
 guessed_letters = []
+tries = 0
 
 def new_word():
-    global tries
     global word
-    tries = 0
     word = random.choice(mots_fr)
     correct_letters = list(set(list(word.lower())))
     guessed_letters = []
+    tries = 0
     return word
 
 def game_status():
@@ -29,10 +29,9 @@ def game_status():
             word_status += ' :black_large_square: '
     return word_status
 
-new_word()
-
 class MyClient(discord.Client):
-    
+
+    new_word()
 
     # Confirme la connexion
     async def on_ready(self):
@@ -40,7 +39,8 @@ class MyClient(discord.Client):
 
     # Detecte les messages
     async def on_message(self, message):
-    
+        tries=tries #Test si la variable est bien definie
+
         if message.channel.id == CHANNEL_ID or TEST_CHANNEL_ID: #verifie que le channel est bien motus
 
             if message.author == self.user: #ne repond pas a lui meme
@@ -70,7 +70,6 @@ class MyClient(discord.Client):
                 await message.channel.send(game_status())
             
             elif len(message.content) == len(word) and message.content.isalpha(): #verifie que le mot respecte les conditions
-                tries=0 # A modifier
                 if message.content.lower() == str(word):
                         await message.channel.send('Bravo, vous avez gagné! Le mot etait bien "' + word.upper() + '" !')
                         new_word()
