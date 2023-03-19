@@ -44,9 +44,7 @@ class MyClient(discord.Client):
 
     # Detecte les messages
     async def on_message(self, message):
-        global guessed_letters
         global tries
-        global correct_letters
 
         if message.author.id in DEV_ID: #admin commands :)
 
