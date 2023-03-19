@@ -21,7 +21,7 @@ def new_word():
     correct_letters = list(set(list(word.lower())))
     guessed_letters = []
     resetTries()
-    return word
+    return word, guessed_letters, tries, correct_letters
 
 def game_status():
     word_status = ''
@@ -72,11 +72,17 @@ class MyClient(discord.Client):
             if message.content == '$adviewtries': #montre le nombre d'essais
                 await message.channel.send('Nombre d\'essais : ' + str(tries))
             
+            if message.content == '$adletters': #montre les lettres correctes
+                await message.channel.send('Lettres correctes : ' + str(correct_letters))
+
+            if message.content=='$adviewguessed': #montre les lettres essayees
+                await message.channel.send('Lettres essayees : ' + str(guessed_letters))
+            
             if message.content == '$adviewchannels': #montre les channels
                 await message.channel.send('Channels : ' + str(CHANNEL_ID))
                     
             if message.content == '$adhelp': #affiche la liste des commandes admin
-                await message.channel.send(':spy: Commandes secretes :spy:: \n\n $adadd : Ajoute le channel \n $adremove : Retire le channel \n $adviewtries : Montre le nombre d\'essais \n $adviewchannels : Montre les channels \n $admot : Montre le mot \n $adwin : Gagne la partie \n $adlose : Perd la partie \n $adreset : Remet le nombre d\'essais a 0 \n $adhelp : Affiche cette liste')
+                await message.channel.send(':spy: Commandes secretes :spy:: \n\n $adadd : Ajoute le channel \n $adremove : Retire le channel \n $adviewtries : Montre le nombre d\'essais \n $adviewchannels : Montre les channels \n $admot : Montre le mot \n $adwin : Gagne la partie \n $adlose : Perd la partie \n $adreset : Remet le nombre d\'essais a 0 \n $adletters : Montre les lettres correctes \n $adviewguessed : Montre les lettres essayees \n $adhelp : Affiche cette liste')
 
         #verifie que le channel est bien motus
         if message.channel.id in CHANNEL_ID:
