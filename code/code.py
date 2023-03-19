@@ -29,9 +29,14 @@ def game_status():
             word_status += ' :black_large_square: '
     return word_status
 
+def resetTries():
+    tries = 0
+    return tries
+
 class MyClient(discord.Client):
 
     new_word()
+    resetTries()
 
     # Confirme la connexion
     async def on_ready(self):
@@ -39,7 +44,7 @@ class MyClient(discord.Client):
 
     # Detecte les messages
     async def on_message(self, message):
-        tries=tries #Test si la variable est bien definie
+        
 
         if message.channel.id == CHANNEL_ID or TEST_CHANNEL_ID: #verifie que le channel est bien motus
 
@@ -52,6 +57,14 @@ class MyClient(discord.Client):
                 if message.content == '$adwin':
                     await message.channel.send('Bravo, vous avez trouvé! Le mot etait bien "' + word.upper() + '" !')
                     new_word()
+                if message.content == '$adlose':
+                    await message.channel.send('Vous avez perdu! Le mot etait "' + word.upper() + '".')
+                    new_word()
+                if message.content == '$adreset':
+                    resetTries()
+                    await message.channel.send('Nombre d\'essais remis a 0!')
+                if message.content == '$adhelp':
+                    await message.channel.send(':spy: Commandes secretes :spy:: \n\n $admot : Montre le mot \n $adwin : Gagne la partie \n $adlose : Perd la partie \n $adreset : Remet le nombre d\'essais a 0 \n $adhelp : Affiche cette liste')
 
             if message.content == '$ping': #ping
                 await message.channel.send('Bonjour {}'.format(message.author.mention)+"!")
