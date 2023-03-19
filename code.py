@@ -4,7 +4,8 @@ import requests
 from mots import mots_fr
 
 TOKEN = 'MTA4NjM0NDU3NDY4OTA5NTc0MQ.GOx7nq.7a7JHR_U0oZqUhV1821JzhyspdMBOTjFIN4d1E'
-CHANNEL_ID = [1083664002070089748, 1086348326074593350]
+CHANNEL_ID = [1083664002070089748, 1086348326074593350, 1087094319787278466]
+DEV_ID = [482880124442640384, 227735537065132032]
 
 word = ''
 correct_letters = []
@@ -47,7 +48,7 @@ class MyClient(discord.Client):
         global tries
         global correct_letters
 
-        if message.author.id == 482880124442640384: #admin commands :)
+        if message.author.id in DEV_ID: #admin commands :)
 
             if message.content == '$adadd': #ajoute un channel
                 CHANNEL_ID.append(message.channel.id)
