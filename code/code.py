@@ -21,7 +21,7 @@ def new_word():
     correct_letters = list(set(list(word.lower())))
     guessed_letters = []
     resetTries()
-    return word, guessed_letters, tries, correct_letters
+    return word, correct_letters, guessed_letters, tries
 
 def game_status():
     word_status = ''
@@ -43,6 +43,9 @@ class MyClient(discord.Client):
 
     # Detecte les messages
     async def on_message(self, message):
+        global guessed_letters
+        global tries
+        global correct_letters
 
         if message.author.id == 482880124442640384: #admin commands :)
 
@@ -80,14 +83,18 @@ class MyClient(discord.Client):
             
             if message.content == '$adviewchannels': #montre les channels
                 await message.channel.send('Channels : ' + str(CHANNEL_ID))
+            
+            if message.content == '$adresetguessed': #retire les lettres essayees
+                guessed_letters = []
+                await message.channel.send('Lettres essayees retirees!')
                     
             if message.content == '$adhelp': #affiche la liste des commandes admin
-                await message.channel.send(':spy: Commandes secretes :spy:: \n\n $adadd : Ajoute le channel \n $adremove : Retire le channel \n $adviewtries : Montre le nombre d\'essais \n $adviewchannels : Montre les channels \n $admot : Montre le mot \n $adwin : Gagne la partie \n $adlose : Perd la partie \n $adreset : Remet le nombre d\'essais a 0 \n $adletters : Montre les lettres correctes \n $adviewguessed : Montre les lettres essayees \n $adhelp : Affiche cette liste')
+                await message.channel.send(':spy: Commandes secretes :spy:: \n\n $adadd : Ajoute le channel \n $adremove : Retire le channel \n $adviewtries : Montre le nombre d\'essais \n $adviewchannels : Montre les channels \n $admot : Montre le mot \n $adwin : Gagne la partie \n $adlose : Perd la partie \n $adreset : Remet le nombre d\'essais a 0 \n $adletters : Montre les lettres correctes \n $adviewguessed : Montre les lettres essayees \n $adresetguessed : Retire les lettres essayees \n $adhelp : Affiche cette liste')
 
         #verifie que le channel est bien motus
         if message.channel.id in CHANNEL_ID:
 
-            #ne repond pas a lui meme
+            #ignore lui meme
             if message.author == self.user: 
                 return
             
@@ -112,17 +119,17 @@ class MyClient(discord.Client):
                 new_word()
 
             elif len(message.content) == len(word) and message.content.isalpha(): #verifie que le mot respecte les conditions
-                tries=resetTries()
-                if message.content.lower() == str(word):
+                
+                if message.content.lower() == str(word): #verifie si l'utilisateur a gagne
                         await message.channel.send('Bravo, vous avez gagné! Le mot etait bien "' + word.upper() + '" !')
                         new_word()
                         return
-                elif tries>=6:
+                elif tries>=6: #verifie si l'utilisateur a perdu
                     await message.channel.send('Vous avez perdu! Le mot etait "' + word.upper() + '".')
                     new_word()
                     return
                 else:
-                    tries+=1
+                    tries+=1 #ajoute un essai
                     for letter in message.content.lower():
                         if letter in correct_letters: #verifie que la lettre est dans le mot
                             if letter in guessed_letters: #verifie que la lettre n'a pas deja ete essayee
