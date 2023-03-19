@@ -11,6 +11,10 @@ correct_letters = []
 guessed_letters = []
 tries = 0
 
+def resetTries():
+    tries = 0
+    return tries
+    
 def new_word():
     global word
     word = random.choice(mots_fr)
@@ -28,14 +32,10 @@ def game_status():
             word_status += ' :black_large_square: '
     return word_status
 
-def resetTries():
-    tries = 0
-    return tries
-
 class MyClient(discord.Client):
 
     new_word()
-    tries = resetTries()
+    resetTries()
 
     # Confirme la connexion
     async def on_ready(self):
@@ -106,15 +106,15 @@ class MyClient(discord.Client):
                 new_word()
 
             elif len(message.content) == len(word) and message.content.isalpha(): #verifie que le mot respecte les conditions
-                
+                tries=resetTries()
                 if message.content.lower() == str(word):
                         await message.channel.send('Bravo, vous avez gagné! Le mot etait bien "' + word.upper() + '" !')
                         new_word()
                         return
-                #elif tries>=6:
-                #    await message.channel.send('Vous avez perdu! Le mot etait "' + word.upper() + '".')
-                #    new_word()
-                #    return
+                elif tries>=6:
+                    await message.channel.send('Vous avez perdu! Le mot etait "' + word.upper() + '".')
+                    new_word()
+                    return
                 else:
                     tries+=1
                     for letter in message.content.lower():
