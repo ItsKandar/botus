@@ -1,7 +1,7 @@
 import discord
 import random
 import requests
-from mots import mots_fr
+from mots2 import mots_fr
 
 TOKEN = 'MTA4NjM0NDU3NDY4OTA5NTc0MQ.GOx7nq.7a7JHR_U0oZqUhV1821JzhyspdMBOTjFIN4d1E'
 CHANNEL_ID = [1083664002070089748, 1086348326074593350, 1087094319787278466]
