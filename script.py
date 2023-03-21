@@ -6,6 +6,7 @@ from mots import mots_fr
 TOKEN = 'MTA4NjM0NDU3NDY4OTA5NTc0MQ.GOx7nq.7a7JHR_U0oZqUhV1821JzhyspdMBOTjFIN4d1E'
 CHANNEL_ID = [1083664002070089748, 1086348326074593350, 1087094319787278466]
 DEV_ID = [482880124442640384, 227735537065132032]
+BLACKLIST = []
 
 word = ''
 correct_letters = []
@@ -58,6 +59,17 @@ class MyClient(discord.Client):
                 CHANNEL_ID.remove(message.channel.id)
                 await message.channel.send('Channel enlevé!')
 
+            if message.content == '$adblacklist': #blacklist quelqu'un
+                BLACKLIST.append(message.mentions[0])
+                await message.channel.send('Utilisateur blacklisté!')
+            
+            if message.content == '$adunblacklist': #unblacklist quelqu'un
+                if message.mentions[0] in BLACKLIST:
+                    BLACKLIST.remove(message.mentions[0])
+                    await message.channel.send('Utilisateur unblacklisté!')
+                else:
+                    await message.channel.send('Cet utilisateur n\'est pas blacklisté!')
+
             if message.content == '$admot': #montre le mot
                 await message.channel.send('Le mot est : ' + word.upper() + ' !')
 
@@ -90,13 +102,13 @@ class MyClient(discord.Client):
                 await message.channel.send('Lettres essayees retirees!')
                     
             if message.content == '$adhelp': #affiche la liste des commandes admin
-                await message.channel.send(':spy: Commandes secretes :spy:: \n\n $adadd : Ajoute le channel \n $adremove : Retire le channel \n $adviewtries : Montre le nombre d\'essais \n $adviewchannels : Montre les channels \n $admot : Montre le mot \n $adwin : Gagne la partie \n $adlose : Perd la partie \n $adreset : Remet le nombre d\'essais a 0 \n $adletters : Montre les lettres correctes \n $adviewguessed : Montre les lettres essayees \n $adresetguessed : Retire les lettres essayees \n $adhelp : Affiche cette liste')
+                await message.channel.send(':spy: Commandes secretes :spy:: \n\n $adadd : Ajoute le channel \n $adremove : Retire le channel \n $adviewtries : Montre le nombre d\'essais \n $adviewchannels : Montre les channels \n $admot : Montre le mot \n $adwin : Gagne la partie \n $adlose : Perd la partie \n $adreset : Remet le nombre d\'essais a 0 \n $adletters : Montre les lettres correctes \n $adviewguessed : Montre les lettres essayees \n $adresetguessed : Retire les lettres essayees \n $adhelp : Affiche cette liste \n $adblacklist : Blackliste quelqu\'un \n $adunblacklist : Unblackliste quelqu\'un')
 
         #verifie que le channel est bien motus
         if message.channel.id in CHANNEL_ID:
 
             #ignore lui meme
-            if message.author == self.user: 
+            if message.author == self.user or message.author in BLACKLIST: 
                 return
             
             if message.content == '$ping': #ping
