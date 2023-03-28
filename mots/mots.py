@@ -74,7 +74,6 @@ mots_fr = [
 "garçon",
 "vieux",
 "quand",
-"jusqu’a",
 "utiliser",
 "votre",
 "maniere",
@@ -356,7 +355,6 @@ mots_fr = [
 "materiel",
 "fraction",
 "foret",
-"s’asseoir",
 "course",
 "fenetre",
 "magasin",
@@ -422,7 +420,7 @@ mots_fr = [
 "jardin",
 "expedie",
 "choisir",
-"s’adapter",
+"adapter",
 "debit",
 "juste",
 "banque",
@@ -689,4 +687,6 @@ mots_fr = [
 "pluriel",
 "colere",
 "continent",
+"assoir",
+"malleable"
 ]

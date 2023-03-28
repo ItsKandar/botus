@@ -156,7 +156,7 @@ class MyClient(discord.Client):
                 await message.channel.send('Bonjour {}'.format(message.author.mention)+"!")
 
             if message.content.lower() == '$help': #help
-                await message.channel.send('Voici la liste des commandes disponibles: \n\n $start : Commence une nouvelle partie \n $mot : Montre le mot \n $fin : Termine la partie \n $mo mo : motus! \n $help : Affiche cette liste, \n $ping : Ping! \n $bug : Signale un bug')
+                await message.channel.send('Voici la liste des commandes disponibles: \n\n $start : Commence une nouvelle partie \n $mot : Montre le mot \n $fin : Termine la partie \n $mo mo : motus! \n $help : Affiche cette liste, \n $ping : Ping! \n $bug : Signale un bug \n $suggest : Suggere un mot')
 
             if message.content.lower() == '$mo mo': #mo mo motus!
                 await message.channel.send('motus!')
@@ -174,6 +174,9 @@ class MyClient(discord.Client):
             if message.content.lower() == '$mot': #montre le mot
                 await message.channel.send(game_status())
 
+            if "$suggest" in message.content.lower(): #suggestion
+                await self.get_channel(1090380324116107285).send("**<@&960245494309879839>\nSUGGESTION DE " + message.author.mention +" aka " + str(message.author) + " dans le channel #"  + str(message.channel) + "**\n\n**LIEN DE LA SUGGESTION**\n" + message.jump_url + "\n\n**MESSAGE**\n" + message.content[9:])
+
             if message.content.lower() == '$fin': #fini la partie
                 await message.channel.send('Le mot etait "' + word.upper() + '".')
                 new_word()
@@ -182,8 +185,19 @@ class MyClient(discord.Client):
 
             elif len(message.content) == len(word) and message.content.isalpha(): #verifie que le mot respecte les conditions
                 
+                correct=0
+                for letter in correct_letters: #Si les lettres de guessed_letters peuvent former le mot 
+                    if letter in guessed_letters:
+                        correct+=1
+                if correct==len(word):
+                    await message.channel.send('Bravo, vous avez gagné! Le mot etait bien "' + word.upper() + '" ! :tada:')
+                    new_word()
+                    tries = 0
+                    await message.channel.send('Nouveau mot (' + str(len(word)) + ' lettres) : \n' + game_status())
+                    return
+
                 if message.content.lower() == str(word): #verifie si l'utilisateur a gagne
-                        await message.channel.send('Bravo, vous avez gagné! Le mot etait bien "' + word.upper() + '" !')
+                        await message.channel.send('Bravo, vous avez gagné! Le mot etait bien "' + word.upper() + '" ! :tada:')
                         new_word()
                         tries = 0
                         await message.channel.send('Nouveau mot (' + str(len(word)) + ' lettres) : \n' + game_status())
@@ -206,7 +220,7 @@ class MyClient(discord.Client):
                             if letter in guessed_letters: 
                                 pass
                             else: #si la lettre est incorrecte et n'a pas deja ete essayee
-                                guessed_letters.append(letter) 
+                                guessed_letters.append(letter)
                     else:
                         await message.channel.send(game_status()+ '\n\n' + str(tries)+ '/6 essais.\n' + 'Lettres essayées : ' + ', '.join(guessed_letters).upper())
             
