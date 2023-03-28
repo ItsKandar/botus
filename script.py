@@ -28,7 +28,7 @@ def resetTries():
     tries = 0
     return tries
     
-def new_word(longueur):
+def new_word():
     global word
     word = random.choice(mots_fr)
     correct_letters = list(set(list(word.lower())))
