@@ -15,7 +15,7 @@ import requests
 from mots.mots import mots_fr
 
 TOKEN = 'MTA4NjM0NDU3NDY4OTA5NTc0MQ.GOx7nq.7a7JHR_U0oZqUhV1821JzhyspdMBOTjFIN4d1E'
-CHANNEL_ID = [1083664002070089748, 1086348326074593350, 1087094319787278466]
+CHANNEL_NAME = 'motus'
 DEV_ID = [482880124442640384, 227735537065132032, 200628777439592450]
 BLACKLIST = []
 
@@ -31,6 +31,7 @@ def resetTries():
 def new_word():
     global word
     global guessed_letters
+    global tries
     word = random.choice(mots_fr)
     correct_letters = list(set(list(word.lower())))
     guessed_letters = []
@@ -66,7 +67,25 @@ class MyClient(discord.Client):
         if message.author == self.user or message.author in BLACKLIST: 
             return
         
+        if 'quoi' in message.content.lower():
+            await message.channel.send('FEUR')
+
         if message.author.id in DEV_ID: #admin commands :)
+
+            if message.content == '$adcreate': #crée un channel #motus si il n'yen a pas encore
+                CHANNELS = []
+                for salon in message.guild.text_channels:
+                    CHANNELS.append(salon.name)
+                if CHANNEL_NAME not in CHANNELS: #verifie si le channel existe deja
+                    await message.guild.create_text_channel(CHANNEL_NAME) #crée le channel
+                    await message.channel.send('Channel créé!')
+                else:
+                    await message.channel.send('Le channel existe deja!')
+
+            if message.content == '$adrestart': #restart bot
+                await message.channel.send('Redemarrage en cours...')
+                await client.close()
+                await client.start(TOKEN)
 
             if message.content == '$adstop':
                 await message.channel.send('Arret en cours...')
@@ -80,14 +99,6 @@ class MyClient(discord.Client):
                 await client.change_presence(activity=discord.Game(name=message.content[9:]))
                 await message.channel.send('Status changé!')
 
-            if message.content == '$adadd': #ajoute un channel
-                CHANNEL_ID.append(message.channel.id)
-                await message.channel.send('Channel ajouté!')
-
-            if message.content == '$adremove': #enleve un channel
-                CHANNEL_ID.remove(message.channel.id)
-                await message.channel.send('Channel enlevé!')
-
             if message.content == '$adblacklist': #blacklist quelqu'un
                 BLACKLIST.append(message.mentions[0])
                 await message.channel.send('Utilisateur blacklisté!')
@@ -100,15 +111,18 @@ class MyClient(discord.Client):
                     await message.channel.send('Cet utilisateur n\'est pas blacklisté!')
 
             if message.content == '$admot': #montre le mot
-                await message.channel.send('Le mot est : ' + word.upper() + ' !')
+                await message.author.send('Le mot est : ' + word.upper() + ' !')
+                await message.channel.send('Le mot a été envoyé en DM!')
 
             if message.content == '$adwin': #gagne la partie
                 await message.channel.send('Bravo, vous avez trouvé! Le mot etait bien "' + word.upper() + '" !')
                 new_word()
+                tries = 0
 
             if message.content == '$adlose': #perd la partie
                 await message.channel.send('Vous avez perdu! Le mot etait "' + word.upper() + '".')
                 new_word()
+                tries = 0
 
             if message.content == '$adreset': #remet le nombre d'essais a 0
                 resetTries()
@@ -123,18 +137,16 @@ class MyClient(discord.Client):
             if message.content=='$adviewguessed': #montre les lettres essayees
                 await message.channel.send('Lettres essayees : ' + str(guessed_letters))
             
-            if message.content == '$adviewchannels': #montre les channels
-                await message.channel.send('Channels : ' + str(CHANNEL_ID))
-            
             if message.content == '$adresetguessed': #retire les lettres essayees
                 guessed_letters = []
                 await message.channel.send('Lettres essayees retirees!')
                     
-            if message.content == '$adhelp': #affiche la liste des commandes admin
-                await message.channel.send(':spy: Commandes secretes :spy:: \n\n $adadd : Ajoute le channel \n $adremove : Retire le channel \n $adviewtries : Montre le nombre d\'essais \n $adviewchannels : Montre les channels \n $admot : Montre le mot \n $adwin : Gagne la partie \n $adlose : Perd la partie \n $adreset : Remet le nombre d\'essais a 0 \n $adletters : Montre les lettres correctes \n $adviewguessed : Montre les lettres essayees \n $adresetguessed : Retire les lettres essayees \n $adhelp : Affiche cette liste \n $adblacklist : Blackliste quelqu\'un \n $adunblacklist : Unblackliste quelqu\'un \n $adstatus : Change le status du bot')
+            if message.content == '$adhelp': #envoie en DM les commandes admins
+                await message.author.send(':spy: Commandes secretes :spy:: \n\n $adviewtries : Montre le nombre d\'essais \n $admot : Montre le mot \n $adwin : Gagne la partie \n $adlose : Perd la partie \n $adreset : Remet le nombre d\'essais a 0 \n $adletters : Montre les lettres correctes \n $adviewguessed : Montre les lettres essayees \n $adresetguessed : Retire les lettres essayees\n $adblacklist : Blackliste quelqu\'un \n $adunblacklist : Unblackliste quelqu\'un \n $adstatus : Change le status du bot \n $adsay : Fait dire quelque chose au bot \n $adcreate : Crée un channel #motus \n $adstop : Arrete le bot \n $adhelp : Affiche cette liste')
+                await message.channel.send('Commandes admins secrètes envoyé en mp :ok_hand: :spy:')
 
         #verifie que le channel est bien motus
-        if message.channel.id in CHANNEL_ID:
+        if message.channel.name == CHANNEL_NAME:
             
             if message.content == '$ping': #ping
                 await message.channel.send('Bonjour {}'.format(message.author.mention)+"!")
@@ -149,10 +161,10 @@ class MyClient(discord.Client):
                await self.get_channel(1090271020956516393).send("**<@&960245494309879839>\nBUG REPORT DE " + message.author.mention +" aka " + str(message.author) + " dans le channel #"  + str(message.channel) + "**\n\n**LIEN DU REPORT**\n" + message.jump_url + "\n\n**MESSAGE**\n" + message.content[5:])
                # add a reaction (:white_check_mark:) to the message sent in 1090271020956516393
                await message.add_reaction('\U00002705') #white check mark
-               await message.channel.send('Bug reporté!')
 
             if message.content.lower() == '$start': #commence la partie
                 new_word()
+                tries = 0
                 await message.channel.send('Nouveau mot (' + str(len(word)) + ' lettres) : \n' + game_status())
             
             if message.content.lower() == '$mot': #montre le mot
@@ -161,16 +173,19 @@ class MyClient(discord.Client):
             if message.content.lower() == '$fin': #fini la partie
                 await message.channel.send('Le mot etait "' + word.upper() + '".')
                 new_word()
+                tries = 0
 
             elif len(message.content) == len(word) and message.content.isalpha(): #verifie que le mot respecte les conditions
                 
                 if message.content.lower() == str(word): #verifie si l'utilisateur a gagne
                         await message.channel.send('Bravo, vous avez gagné! Le mot etait bien "' + word.upper() + '" !')
                         new_word()
+                        tries = 0
                         return
                 elif tries>=6: #verifie si l'utilisateur a perdu
                     await message.channel.send('Vous avez perdu! Le mot etait "' + word.upper() + '".')
                     new_word()
+                    tries = 0
                     return
                 else:
                     tries+=1 #ajoute un essai
