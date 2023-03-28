@@ -118,11 +118,15 @@ class MyClient(discord.Client):
                 await message.channel.send('Bravo, vous avez trouvé! Le mot etait bien "' + word.upper() + '" !')
                 new_word()
                 tries = 0
+                await message.channel.send('Nouveau mot (' + str(len(word)) + ' lettres) : \n' + game_status())
+            
 
             if message.content == '$adlose': #perd la partie
                 await message.channel.send('Vous avez perdu! Le mot etait "' + word.upper() + '".')
                 new_word()
                 tries = 0
+                await message.channel.send('Nouveau mot (' + str(len(word)) + ' lettres) : \n' + game_status())
+            
 
             if message.content == '$adreset': #remet le nombre d'essais a 0
                 resetTries()
@@ -174,6 +178,7 @@ class MyClient(discord.Client):
                 await message.channel.send('Le mot etait "' + word.upper() + '".')
                 new_word()
                 tries = 0
+                await message.channel.send('Nouveau mot (' + str(len(word)) + ' lettres) : \n' + game_status())
 
             elif len(message.content) == len(word) and message.content.isalpha(): #verifie que le mot respecte les conditions
                 
@@ -181,11 +186,13 @@ class MyClient(discord.Client):
                         await message.channel.send('Bravo, vous avez gagné! Le mot etait bien "' + word.upper() + '" !')
                         new_word()
                         tries = 0
+                        await message.channel.send('Nouveau mot (' + str(len(word)) + ' lettres) : \n' + game_status())
                         return
                 elif tries>=6: #verifie si l'utilisateur a perdu
                     await message.channel.send('Vous avez perdu! Le mot etait "' + word.upper() + '".')
                     new_word()
                     tries = 0
+                    await message.channel.send('Nouveau mot (' + str(len(word)) + ' lettres) : \n' + game_status())
                     return
                 else:
                     tries+=1 #ajoute un essai
