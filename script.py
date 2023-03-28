@@ -62,14 +62,15 @@ class MyClient(discord.Client):
         global correct_letters
         global guessed_letters
 
-        if "quoi" in message.content.lower():
-            await message.channel.send("FEUR")
-
         #ignore lui meme ou utilisateur blacklisté
         if message.author == self.user or message.author in BLACKLIST: 
             return
         
         if message.author.id in DEV_ID: #admin commands :)
+
+            if message.content == '$adstop':
+                await message.channel.send('Arret en cours...')
+                await client.close()
 
             if '$adsay' in message.content:
                 await message.channel.send(message.content[7:])
@@ -145,8 +146,10 @@ class MyClient(discord.Client):
                 await message.channel.send('motus!')
 
             if '$bug' in message.content.lower(): #report un bug
-                await self.get_channel(1090271020956516393).send('**<@&960245494309879839>\nBUG REPORT DE**' + message.author.mention +'\n\n**LIEN DU REPORT**\n' + message.jump_url + '\n\n**MESSAGE**\n' + message.content[5:])
-                await message.channel.send('Bug reporté!')
+               await self.get_channel(1090271020956516393).send("**<@&960245494309879839>\nBUG REPORT DE " + message.author.mention +" aka " + str(message.author) + " dans le channel #"  + str(message.channel) + "**\n\n**LIEN DU REPORT**\n" + message.jump_url + "\n\n**MESSAGE**\n" + message.content[5:])
+               # add a reaction (:white_check_mark:) to the message sent in 1090271020956516393
+               await message.add_reaction('\U00002705') #white check mark
+               await message.channel.send('Bug reporté!')
 
             if message.content.lower() == '$start': #commence la partie
                 new_word()
