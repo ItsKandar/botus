@@ -2,7 +2,7 @@ import discord
 from discord.ext import commands
 import random
 import string
-from mots3 import mots_fr
+from mots import mots_fr
 
 intents = discord.Intents.default()
 intents.typing = False
