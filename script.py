@@ -30,6 +30,7 @@ def resetTries():
     
 def new_word():
     global word
+    global guessed_letters
     word = random.choice(mots_fr)
     correct_letters = list(set(list(word.lower())))
     guessed_letters = []
@@ -53,6 +54,7 @@ class MyClient(discord.Client):
     # Confirme la connexion
     async def on_ready(self):
         print('Logged in as', self.user)
+        await client.change_presence(activity=discord.Game(name='Mo mo motus!'))
 
     # Detecte les messages
     async def on_message(self, message):
@@ -60,7 +62,22 @@ class MyClient(discord.Client):
         global correct_letters
         global guessed_letters
 
+        if "quoi" in message.content.lower():
+            await message.channel.send("FEUR")
+
+        #ignore lui meme ou utilisateur blacklisté
+        if message.author == self.user or message.author in BLACKLIST: 
+            return
+        
         if message.author.id in DEV_ID: #admin commands :)
+
+            if '$adsay' in message.content:
+                await message.channel.send(message.content[7:])
+                await message.delete()
+
+            if '$adstatus' in message.content:
+                await client.change_presence(activity=discord.Game(name=message.content[9:]))
+                await message.channel.send('Status changé!')
 
             if message.content == '$adadd': #ajoute un channel
                 CHANNEL_ID.append(message.channel.id)
@@ -113,23 +130,23 @@ class MyClient(discord.Client):
                 await message.channel.send('Lettres essayees retirees!')
                     
             if message.content == '$adhelp': #affiche la liste des commandes admin
-                await message.channel.send(':spy: Commandes secretes :spy:: \n\n $adadd : Ajoute le channel \n $adremove : Retire le channel \n $adviewtries : Montre le nombre d\'essais \n $adviewchannels : Montre les channels \n $admot : Montre le mot \n $adwin : Gagne la partie \n $adlose : Perd la partie \n $adreset : Remet le nombre d\'essais a 0 \n $adletters : Montre les lettres correctes \n $adviewguessed : Montre les lettres essayees \n $adresetguessed : Retire les lettres essayees \n $adhelp : Affiche cette liste \n $adblacklist : Blackliste quelqu\'un \n $adunblacklist : Unblackliste quelqu\'un')
+                await message.channel.send(':spy: Commandes secretes :spy:: \n\n $adadd : Ajoute le channel \n $adremove : Retire le channel \n $adviewtries : Montre le nombre d\'essais \n $adviewchannels : Montre les channels \n $admot : Montre le mot \n $adwin : Gagne la partie \n $adlose : Perd la partie \n $adreset : Remet le nombre d\'essais a 0 \n $adletters : Montre les lettres correctes \n $adviewguessed : Montre les lettres essayees \n $adresetguessed : Retire les lettres essayees \n $adhelp : Affiche cette liste \n $adblacklist : Blackliste quelqu\'un \n $adunblacklist : Unblackliste quelqu\'un \n $adstatus : Change le status du bot')
 
         #verifie que le channel est bien motus
         if message.channel.id in CHANNEL_ID:
-
-            #ignore lui meme
-            if message.author == self.user or message.author in BLACKLIST: 
-                return
             
             if message.content == '$ping': #ping
                 await message.channel.send('Bonjour {}'.format(message.author.mention)+"!")
 
             if message.content.lower() == '$help': #help
-                await message.channel.send('Voici la liste des commandes disponibles: \n\n $start : Commence une nouvelle partie \n $mot : Montre le mot \n $fin : Termine la partie \n $mo mo : motus! \n $help : Affiche cette liste')
+                await message.channel.send('Voici la liste des commandes disponibles: \n\n $start : Commence une nouvelle partie \n $mot : Montre le mot \n $fin : Termine la partie \n $mo mo : motus! \n $help : Affiche cette liste, \n $ping : Ping! \n $bug : Signale un bug')
 
             if message.content.lower() == '$mo mo': #mo mo motus!
                 await message.channel.send('motus!')
+
+            if '$bug' in message.content.lower(): #report un bug
+                await self.get_channel(1090271020956516393).send('**<@&960245494309879839>\nBUG REPORT DE**' + message.author.mention +'\n\n**LIEN DU REPORT**\n' + message.jump_url + '\n\n**MESSAGE**\n' + message.content[5:])
+                await message.channel.send('Bug reporté!')
 
             if message.content.lower() == '$start': #commence la partie
                 new_word()
