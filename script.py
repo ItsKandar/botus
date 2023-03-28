@@ -19,6 +19,7 @@ def resetTries():
     
 def new_word():
     global word
+    global guessed_letters
     word = random.choice(mots_fr)
     correct_letters = list(set(list(word.lower())))
     guessed_letters = []
@@ -80,6 +81,7 @@ class MyClient(discord.Client):
             if message.content == '$adlose': #perd la partie
                 await message.channel.send('Vous avez perdu! Le mot etait "' + word.upper() + '".')
                 new_word()
+                guessed_letters = []
 
             if message.content == '$adreset': #remet le nombre d'essais a 0
                 resetTries()
