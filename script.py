@@ -1,3 +1,14 @@
+#                           A FAIRE
+#
+#   - Detecter si la lettre est bien positionné
+#       - Si elle est dans le mot mais mal positionné, mettre un carré jaune
+#       (Potentiellement une ligne en dessous avec les emojis rouge, jaunes, noir?)
+#   
+#   - Ajouter une option pour choisir la longueur du mot
+#   
+#   - Avoir des points individuels pour pouvoir jouer a plusieurs
+#
+
 import discord
 import random
 import requests
