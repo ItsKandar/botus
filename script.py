@@ -8,16 +8,14 @@
 #   
 #   - Avoir des points individuels pour pouvoir jouer a plusieurs
 #
+#   - Classement des meilleurs joueurs
 
 import discord
 import random
-import requests
 from mots.mots import mots_fr
+from config import TOKEN, BLACKLIST, DEV_ID
 
-TOKEN = 'MTA4NjM0NDU3NDY4OTA5NTc0MQ.GOx7nq.7a7JHR_U0oZqUhV1821JzhyspdMBOTjFIN4d1E'
 CHANNEL_NAME = 'motus'
-DEV_ID = [482880124442640384, 227735537065132032, 200628777439592450]
-BLACKLIST = []
 
 word = ''
 correct_letters = []
