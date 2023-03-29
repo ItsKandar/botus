@@ -1,5 +1,6 @@
-# motus
-Bot motus pour discord !
+# Motus !
+
+Jouez a Motus sur discord !
 
 
 **Serveur support :**
