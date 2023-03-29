@@ -696,5 +696,6 @@ mots_fr = [
 "france",
 "francais",
 "francaise",
-"etangs"
+"etangs",
+"aquatique"
 ]
