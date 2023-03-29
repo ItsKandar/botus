@@ -688,5 +688,13 @@ mots_fr = [
 "colere",
 "continent",
 "assoir",
-"malleable"
+"malleable",
+"internet",
+"fuite",
+"urgent",
+"urgente",
+"france",
+"francais",
+"francaise",
+"etangs"
 ]
