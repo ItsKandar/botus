@@ -1,8 +1,14 @@
-# motus
-Bot motus pour discord !
+# Motus !
+
+**Jouez a Motus sur discord !**
 
 
-Commandes disponibles :
+**Serveur support :**
+
+_https://discord.gg/hjM44ycV_
+
+
+**Commandes disponibles :**
 
 
 $start : Commence une nouvelle partie 
