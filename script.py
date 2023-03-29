@@ -102,11 +102,11 @@ class MyClient(discord.Client):
                 await client.change_presence(activity=discord.Game(name=message.content[9:]))
                 await message.channel.send('Status changé!')
 
-            if message.content == '$adblacklist': #blacklist quelqu'un
+            if message.content[:12] == '$adblacklist': #blacklist quelqu'un
                 BLACKLIST.append(message.mentions[0])
                 await message.channel.send('Utilisateur blacklisté!')
             
-            if message.content == '$adunblacklist': #unblacklist quelqu'un
+            if message.content[:14] == '$adunblacklist': #unblacklist quelqu'un
                 if message.mentions[0] in BLACKLIST:
                     BLACKLIST.remove(message.mentions[0])
                     await message.channel.send('Utilisateur unblacklisté!')
