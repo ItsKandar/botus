@@ -16,6 +16,7 @@ from mots.mots import mots_fr
 from config import TOKEN, BLACKLIST, DEV_ID
 
 CHANNEL_NAME = 'motus'
+intents = discord.Intents.all()
 
 word = ''
 correct_letters = []
@@ -162,13 +163,16 @@ class MyClient(discord.Client):
                 await message.channel.send('Bonjour {}'.format(message.author.mention)+"!")
 
             if message.content.lower() == '$help': #help
-                await message.channel.send('Voici la liste des commandes disponibles: \n\n $start : Commence une nouvelle partie \n $mot : Montre le mot \n $fin : Termine la partie \n $mo mo : motus! \n $help : Affiche cette liste, \n $ping : Ping! \n $bug : Signale un bug \n $suggest : Suggere un mot')
+                await message.channel.send('Voici la liste des commandes disponibles: \n\n $start : Commence une nouvelle partie \n $mot : Montre le mot \n $fin : Termine la partie \n $mo mo : motus! \n $help : Affiche cette liste \n $ping : Ping! \n $bug : Signale un bug \n $suggest : Suggere un mot \n $server : Envoie le lien du serveur support')
 
             if message.content.lower() == '$mo mo': #mo mo motus!
                 await message.channel.send('motus!')
 
+            if message.content.lower() == '$server': #envoie le lien du serveur support
+                await message.channel.send('Voici le lien du serveur Motus! : https://discord.gg/4M6596sjZa')
+
             if '$bug' in message.content.lower(): #report un bug
-               await self.get_channel(1090271020956516393).send("**<@&960245494309879839>\nBUG REPORT DE " + message.author.mention +" aka " + str(message.author) + " dans le channel #"  + str(message.channel) + "**\n\n**LIEN DU REPORT**\n" + message.jump_url + "\n\n**MESSAGE**\n" + message.content[5:])
+               await self.get_channel(1090643512220983346).send("**<@&1090635527058898944>\nBUG REPORT DE " + message.author.mention +" aka " + str(message.author) + " dans le channel #"  + str(message.channel) + "**\n\n**LIEN DU REPORT**\n" + message.jump_url + "\n\n**MESSAGE**\n" + message.content[5:])
                # add a reaction (:white_check_mark:) to the message sent in 1090271020956516393
                await message.add_reaction('\U00002705') #white check mark
 
@@ -181,7 +185,7 @@ class MyClient(discord.Client):
                 await message.channel.send(game_status())
 
             if "$suggest" in message.content.lower(): #suggestion
-                await self.get_channel(1090380324116107285).send("**<@&960245494309879839>\nSUGGESTION DE " + message.author.mention +" aka " + str(message.author) + " dans le channel #"  + str(message.channel) + "**\n\n**LIEN DE LA SUGGESTION**\n" + message.jump_url + "\n\n**MESSAGE**\n" + message.content[9:])
+                await self.get_channel(1090643533922304041).send("**<@&1090635527058898944>\nSUGGESTION DE " + message.author.mention +" aka " + str(message.author) + " dans le channel #"  + str(message.channel) + "**\n\n**LIEN DE LA SUGGESTION**\n" + message.jump_url + "\n\n**MESSAGE**\n" + message.content[9:])
 
             if message.content.lower() == '$fin': #fini la partie
                 await message.channel.send('Le mot etait "' + word.upper() + '".')
@@ -231,6 +235,8 @@ class MyClient(discord.Client):
                         await message.channel.send(game_status()+ '\n\n' + str(tries)+ '/6 essais.\n' + 'Lettres essayées : ' + ', '.join(guessed_letters).upper())
             
             
-client = MyClient()
+intents = discord.Intents.default()
+intents.message_content = True
+client = MyClient(intents=intents)
 
 client.run(TOKEN) #run bot
