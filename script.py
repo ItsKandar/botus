@@ -61,10 +61,11 @@ class MyClient(discord.Client):
         if message.author == self.user or message.author in BLACKLIST: 
             return
         
-        if message.content.lower() in ['quoi', 'qwa', 'koi']:
+        # Faites pas attention
+        if 'quoi' in message.content.lower() or 'cwa' in message.content.lower() or 'kwa' in message.content.lower() or 'qwa' in message.content.lower() or 'koi' in message.content.lower():
             await message.channel.send('FEUR')
 
-        if message.content.lower() in ['oui', 'ui']:
+        if 'oui' in message.content.lower() or 'ui' in message.content.lower():
             await message.channel.send('FI')
 
         if 'ratio' in message.content.lower(): #envoie ratio et reagi a son message
