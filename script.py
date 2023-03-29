@@ -171,7 +171,7 @@ class MyClient(discord.Client):
             if message.content.lower() == '$server': #envoie le lien du serveur support
                 await message.channel.send('Voici le lien du serveur Motus! : https://discord.gg/4M6596sjZa')
 
-            if '$bug' in message.content.lower(): #report un bug
+            if '$bug' in message.content.lower()[:4]: #report un bug
                await self.get_channel(1090643512220983346).send("**<@&1090635527058898944>\nBUG REPORT DE " + message.author.mention +" aka " + str(message.author) + " dans le channel #"  + str(message.channel) + "**\n\n**LIEN DU REPORT**\n" + message.jump_url + "\n\n**MESSAGE**\n" + message.content[5:])
                # add a reaction (:white_check_mark:) to the message sent in 1090271020956516393
                await message.add_reaction('\U00002705') #white check mark
@@ -184,7 +184,7 @@ class MyClient(discord.Client):
             if message.content.lower() == '$mot': #montre le mot
                 await message.channel.send(game_status())
 
-            if "$suggest" in message.content.lower(): #suggestion
+            if "$suggest" in message.content.lower()[:8]: #suggestion
                 await self.get_channel(1090643533922304041).send("**<@&1090635527058898944>\nSUGGESTION DE " + message.author.mention +" aka " + str(message.author) + " dans le channel #"  + str(message.channel) + "**\n\n**LIEN DE LA SUGGESTION**\n" + message.jump_url + "\n\n**MESSAGE**\n" + message.content[9:])
 
             if message.content.lower() == '$fin': #fini la partie
