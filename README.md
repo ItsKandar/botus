@@ -1,6 +1,6 @@
 # Motus !
 
-Jouez a Motus sur discord !
+**Jouez a Motus sur discord !**
 
 
 **Serveur support :**
