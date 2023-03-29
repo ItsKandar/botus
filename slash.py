@@ -1,0 +1,26 @@
+import discord
+from discord import app_commands
+from discord.ext import commands
+from config import TOKEN
+
+bot = commands.Bot(command_prefix='$', intents=discord.Intents.all())
+
+@bot.event
+async def on_ready():
+    print('Bot is ready.')
+    try:
+        synced = await bot.tree.sync()
+        print(f"Synced {synced} commands.")
+    except Exception as e:
+        print(f"Failed to sync commands: {e}")
+
+@bot.tree.command(name='ping')
+async def ping(interaction: discord.Interaction):
+    await interaction.response.send_message(f'Pong!')
+
+
+@bot.tree.command(name='say')
+async def say(interaction: discord.Interaction, message: str):
+    await interaction.response.send_message(message)
+
+bot.run(TOKEN)
