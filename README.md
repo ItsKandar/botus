@@ -2,6 +2,10 @@
 
 Jouez au célèbre jeu de mots "Motus" directement sur Discord avec vos amis !
 
+## Comment ajouter le bot ?
+
+Pour inviter le bot [https://discord.com/api/oauth2/authorize?client_id=1086344574689095741&permissions=8&scope=bot%20applications.commands](cliquez ici !)
+
 ## Serveur support
 
 Rejoignez le serveur Discord pour obtenir de l'aide, poser des questions ou proposer des améliorations : [https://discord.gg/hjM44ycV](https://discord.gg/hjM44ycV)
