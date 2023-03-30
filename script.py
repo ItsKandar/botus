@@ -1,11 +1,10 @@
 import discord
 import random
 from mots.mots import mots_fr
-from config import RE_TOKEN, BLACKLIST, DEV_ID, DEV_TOKEN
+from config import RE_TOKEN, BLACKLIST, DEV_ID, DEV_TOKEN, DEVMODE
 
 CHANNEL_NAME = 'motus'
 TOKEN=''
-DEVMODE = True
 intents = discord.Intents.all()
 
 if DEVMODE:
@@ -17,7 +16,6 @@ word = ''
 correct_letters = []
 guessed_letters = []
 tries = 0
-global quoifeur
 
 def resetTries():
     tries = 0
@@ -47,11 +45,6 @@ class MyClient(discord.Client):
     new_word()
     resetTries()
 
-    # OPTIONS
-    
-    global quoifeur
-    quoifeur = False
-
     # Confirme la connexion
     async def on_ready(self):
         print('Logged in as', self.user)
@@ -68,30 +61,28 @@ class MyClient(discord.Client):
             return
         
         # Faites pas attention
-        if quoifeur == True:
-            if 'quoi' in message.content.lower() or 'cwa' in message.content.lower() or 'kwa' in message.content.lower() or 'qwa' in message.content.lower() or 'koi' in message.content.lower():
+        if 'quoi' in message.content.lower() or 'cwa' in message.content.lower() or 'kwa' in message.content.lower() or 'qwa' in message.content.lower() or 'koi' in message.content.lower():
+            roll = random.randint(0, 10)
+            if roll <= 0.69:
+                await message.channel.send('COUBAKA :star2:')
+            if roll <= 3:
+                await message.channel.send('COUBE :star:')
+            else:
                 await message.channel.send('FEUR')
 
-            if 'oui' in message.content.lower() or 'ui' in message.content.lower():
-                roll = random.randint(1, 10)
-                if roll <= 1:
-                    await message.channel.send('STITI :star2:')
-                else:
-                    await message.channel.send('FI')
+        if 'oui' in message.content.lower() or 'ui' in message.content.lower():
+            roll = random.randint(0, 10)
+            if roll <= 1:
+                await message.channel.send('STITI :star2:')
+            else:
+                await message.channel.send('FI')
 
-            if 'ratio' in message.content.lower(): #envoie ratio et reagi a son message
-                await message.channel.send('ratio')
-                await message.add_reaction('\U00002705')
+        if 'ratio' in message.content.lower(): #envoie ratio et reagi a son message
+            await message.channel.send('ratio')
+            await message.add_reaction('\U00002705')
 
 
         if message.author.id in DEV_ID: #admin commands :)
-
-            if message.content == '$addisfeur': #fait quoifeur
-                quoifeur = True
-                await message.channel.send('Quoifeur activé!')
-            if message.content == '$addispasfeur': #arrete quoifeur
-                quoifeur = False
-                await message.channel.send('Quoifeur désactivé!')
 
             if message.content == '$adcreate': #crée un channel #motus si il n'yen a pas encore
                 CHANNELS = []
