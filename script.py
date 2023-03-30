@@ -1,11 +1,10 @@
 import discord
 import random
 from mots.mots import mots_fr
-from config import RE_TOKEN, BLACKLIST, DEV_ID, DEV_TOKEN
+from config import RE_TOKEN, BLACKLIST, DEV_ID, DEV_TOKEN, DEVMODE
 
 CHANNEL_NAME = 'motus'
 TOKEN=''
-DEVMODE = False
 intents = discord.Intents.all()
 
 if DEVMODE:
@@ -49,7 +48,7 @@ class MyClient(discord.Client):
     # Confirme la connexion
     async def on_ready(self):
         print('Logged in as', self.user)
-        await client.change_presence(activity=discord.Game(name='Mo mo motus!'))
+        await client.change_presence(activity=discord.Game(name='Maintenant sur le cloud!'))
 
     # Detecte les messages
     async def on_message(self, message):
@@ -63,10 +62,20 @@ class MyClient(discord.Client):
         
         # Faites pas attention
         if 'quoi' in message.content.lower() or 'cwa' in message.content.lower() or 'kwa' in message.content.lower() or 'qwa' in message.content.lower() or 'koi' in message.content.lower():
-            await message.channel.send('FEUR')
+            roll = random.randint(0, 10)
+            if roll <= 0.69:
+                await message.channel.send('COUBAKA :star2:')
+            if roll <= 3:
+                await message.channel.send('COUBE :star:')
+            else:
+                await message.channel.send('FEUR')
 
         if 'oui' in message.content.lower() or 'ui' in message.content.lower():
-            await message.channel.send('FI')
+            roll = random.randint(0, 10)
+            if roll <= 1:
+                await message.channel.send('STITI :star2:')
+            else:
+                await message.channel.send('FI')
 
         if 'ratio' in message.content.lower(): #envoie ratio et reagi a son message
             await message.channel.send('ratio')
@@ -102,11 +111,11 @@ class MyClient(discord.Client):
                 await client.change_presence(activity=discord.Game(name=message.content[9:]))
                 await message.channel.send('Status changé!')
 
-            if message.content == '$adblacklist': #blacklist quelqu'un
+            if message.content[:12] == '$adblacklist': #blacklist quelqu'un
                 BLACKLIST.append(message.mentions[0])
                 await message.channel.send('Utilisateur blacklisté!')
             
-            if message.content == '$adunblacklist': #unblacklist quelqu'un
+            if message.content[:14] == '$adunblacklist': #unblacklist quelqu'un
                 if message.mentions[0] in BLACKLIST:
                     BLACKLIST.remove(message.mentions[0])
                     await message.channel.send('Utilisateur unblacklisté!')

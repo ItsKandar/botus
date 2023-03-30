@@ -697,5 +697,13 @@ mots_fr = [
 "francais",
 "francaise",
 "etangs",
-"aquatique"
+"aquatique",
+"activite",
+"creation",
+"bassines",
+"bassin",
+"minuit",
+"perdre",
+"piege",
+"mange"
 ]
