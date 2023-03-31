@@ -41,9 +41,12 @@ def game_status():
     return word_status
 
 class MyClient(discord.Client):
-
-    new_word()
-    resetTries()
+    
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.quoifeur = 0
+        new_word()
+        resetTries()
 
     # Confirme la connexion
     async def on_ready(self):
@@ -59,27 +62,18 @@ class MyClient(discord.Client):
         #ignore lui meme ou utilisateur blacklisté
         if message.author == self.user or message.author in BLACKLIST: 
             return
-        
+
         # Faites pas attention
-        if 'quoi' in message.content.lower() or 'cwa' in message.content.lower() or 'kwa' in message.content.lower() or 'qwa' in message.content.lower() or 'koi' in message.content.lower():
-            roll = random.randint(0, 10)
-            if roll <= 0.69:
-                await message.channel.send('COUBAKA :star2:')
-            if roll <= 3:
-                await message.channel.send('COUBE :star:')
-            else:
+        if self.quoifeur == 1:
+            if 'quoi' in message.content.lower() or 'cwa' in message.content.lower() or 'kwa' in message.content.lower() or 'qwa' in message.content.lower() or 'koi' in message.content.lower():
                 await message.channel.send('FEUR')
 
-        if 'oui' in message.content.lower() or 'ui' in message.content.lower():
-            roll = random.randint(0, 10)
-            if roll <= 1:
-                await message.channel.send('STITI :star2:')
-            else:
-                await message.channel.send('FI')
-
-        if 'ratio' in message.content.lower(): #envoie ratio et reagi a son message
-            await message.channel.send('ratio')
-            await message.add_reaction('\U00002705')
+            if 'ui' in message.content.lower():
+                roll = random.randint(0, 10)
+                if roll <= 1:
+                    await message.channel.send('STITI :star2:')
+                else:
+                    await message.channel.send('FI')
 
 
         if message.author.id in DEV_ID: #admin commands :)
@@ -102,6 +96,14 @@ class MyClient(discord.Client):
             if message.content == '$adstop':
                 await message.channel.send('Arret en cours...')
                 await client.close()
+
+            if message.content == '$adquoifeur':
+                self.quoifeur = 1
+                await message.channel.send('Quoifeur activé!')
+
+            if message.content == '$adquoifeuroff':
+                self.quoifeur = 0
+                await message.channel.send('Quoifeur désactivé!')
 
             if '$adsay' in message.content:
                 await message.channel.send(message.content[7:])
