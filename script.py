@@ -1,7 +1,16 @@
 import discord
+import sqlite3
 import random
 from mots.mots import mots_fr
 from config import RE_TOKEN, BLACKLIST, DEV_ID, DEV_TOKEN, DEVMODE
+
+# Créer ou ouvrir la base de données SQLite
+conn = sqlite3.connect("servers.db")
+c = conn.cursor()
+
+# Créer la table "servers" si elle n'existe pas déjà
+c.execute("CREATE TABLE IF NOT EXISTS servers (id TEXT PRIMARY KEY, prefix TEXT)")
+conn.commit()
 
 CHANNEL_NAME = 'motus'
 TOKEN=''
