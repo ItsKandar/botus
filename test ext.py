@@ -7,9 +7,10 @@ from config import RE_TOKEN, BLACKLIST, DEV_ID, DEV_TOKEN, DEVMODE
 
 # Créer ou ouvrir la base de données SQLite
 conn = sqlite3.connect("servers.db")
+conn = sqlite3.connect("users.db")
 c = conn.cursor()
 
-# Créer la table "servers" et ses columns si elles n'existent pas déjà
+# Fonction qui verifie si une colonne existe dans une table
 def column_exists(cursor, table_name, column_name):
     cursor.execute("PRAGMA table_info({})".format(table_name))
     columns = cursor.fetchall()
@@ -18,8 +19,8 @@ def column_exists(cursor, table_name, column_name):
             return True
     return False
 
-c.execute("CREATE TABLE IF NOT EXISTS servers (id TEXT PRIMARY KEY, prefix TEXT)")
-conn.commit()
+# Créer la table "servers" et ses columns si elles n'existent pas déjà
+c.execute("CREATE TABLE IF NOT EXISTS servers (server_id TEXT PRIMARY KEY, prefix TEXT)")
 
 if not column_exists(c, "servers", "channel_id"):
     c.execute("ALTER TABLE servers ADD COLUMN channel_id TEXT")
@@ -29,6 +30,16 @@ if not column_exists(c, "servers", "quoifeur"):
 
 conn.commit()
 
+# Créer la table "users" et ses columns si elles n'existent pas déjà
+c.execute("CREATE TABLE IF NOT EXISTS users (user_id TEXT PRIMARY KEY, wins INTEGER)")
+
+if not column_exists(c, "users", "loses"):
+    c.execute("ALTER TABLE users ADD COLUMN loses INTEGER")
+
+if not column_exists(c, "users", "is_blacklisted"):
+    c.execute("ALTER TABLE users ADD COLUMN is_blacklisted INTEGER")
+
+conn.commit()
 
 
 CHANNEL_NAME = 'motus'
@@ -73,7 +84,7 @@ def game_status():
 # Récupère le préfixe du serveur
 async def get_prefix(bot, message):
     guild_id = message.guild.id
-    c.execute("SELECT prefix FROM servers WHERE id=?", (guild_id,))
+    c.execute("SELECT prefix FROM servers WHERE server_id=?", (guild_id,))
     row = c.fetchone()
     if row is None:
         prefix = "!"
@@ -85,7 +96,7 @@ async def get_prefix(bot, message):
 
 async def get_channel_id(bot, message):
     guild_id = message.guild.id
-    c.execute("SELECT channel_id FROM servers WHERE id=?", (guild_id,))
+    c.execute("SELECT channel_id FROM servers WHERE server_id=?", (guild_id,))
     row = c.fetchone()
     if row is None:
         channel_id = message.channel.id
@@ -97,7 +108,7 @@ async def get_channel_id(bot, message):
 
 async def get_quoifeur(bot, message):
     guild_id = message.guild.id
-    c.execute("SELECT quoifeur FROM servers WHERE id=?", (guild_id,))
+    c.execute("SELECT quoifeur FROM servers WHERE server_id=?", (guild_id,))
     row = c.fetchone()
     if row is None:
         quoifeur = 0
@@ -120,7 +131,7 @@ async def on_ready():
 @bot.command()
 async def set_prefix(ctx, prefix: str):
     guild_id = ctx.guild.id
-    c.execute("UPDATE servers SET prefix=? WHERE id=?", (prefix, guild_id))
+    c.execute("UPDATE servers SET prefix=? WHERE server_id=?", (prefix, guild_id))
     conn.commit()
     await ctx.send(f"Préfixe mis à jour: {prefix}")
 
@@ -194,14 +205,14 @@ async def on_message(message):
         if message.content == '$adquoifeur':
             quoifeur = 1
             guild_id = message.guild.id
-            c.execute("UPDATE servers SET quoifeur=? WHERE id=?", (quoifeur, guild_id))
+            c.execute("UPDATE servers SET quoifeur=? WHERE server_id=?", (quoifeur, guild_id))
             conn.commit()
             await message.channel.send('Quoifeur activé!')
 
         if message.content == '$adquoifeuroff':
             quoifeur = 0
             guild_id = message.guild.id
-            c.execute("UPDATE servers SET quoifeur=? WHERE id=?", (quoifeur, guild_id))
+            c.execute("UPDATE servers SET quoifeur=? WHERE server_id=?", (quoifeur, guild_id))
             conn.commit()
             await message.channel.send('Quoifeur désactivé!')
 
