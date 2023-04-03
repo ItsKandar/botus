@@ -26,9 +26,9 @@ Voici la liste des commandes disponibles pour jouer à Motus sur Discord (**Atte
 
 ## Comment jouer ?
 
-1. Tapez `$start` pour commencer une nouvelle partie.
-2. Le bot affichera un mot à deviner avec les lettres masquées.
-3. Proposez un mot directement dans le chat.
+1. Tapez `$start` pour commencer une nouvelle partie
+2. Le bot affichera un mot à deviner avec les lettres masquées
+3. Proposez un mot directement dans le chat
 4. Le bot va renvoyer le mot, avec les lettres correctes de votre mot devoilées
 5. Vous avez 6 essais, si vous trouvez le mot, le jeu se termine et vous gagnez. Sinon, continuez à proposer des mots jusqu'à ce que vous le trouviez ou que vous décidiez d'arrêter la partie en tapant `$fin`!
 

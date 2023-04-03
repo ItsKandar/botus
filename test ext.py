@@ -6,8 +6,7 @@ from mots.mots import mots_fr
 from config import RE_TOKEN, BLACKLIST, DEV_ID, DEV_TOKEN, DEVMODE
 
 # Créer ou ouvrir la base de données SQLite
-conn = sqlite3.connect("servers.db")
-conn = sqlite3.connect("users.db")
+conn = sqlite3.connect("botus.db")
 c = conn.cursor()
 
 # Fonction qui verifie si une colonne existe dans une table
@@ -19,19 +18,26 @@ def column_exists(cursor, table_name, column_name):
             return True
     return False
 
-# Créer la table "servers" et ses columns si elles n'existent pas déjà
+# Créer les table "servers" et "users" si elles n'existent pas déjà
 c.execute("CREATE TABLE IF NOT EXISTS servers (server_id TEXT PRIMARY KEY, prefix TEXT)")
+c.execute("CREATE TABLE IF NOT EXISTS users (user_id TEXT PRIMARY KEY, wins INTEGER)")
 
+# Créer les collumns de "servers" si elles n'existent pas déjà
 if not column_exists(c, "servers", "channel_id"):
     c.execute("ALTER TABLE servers ADD COLUMN channel_id TEXT")
 
 if not column_exists(c, "servers", "quoifeur"):
     c.execute("ALTER TABLE servers ADD COLUMN quoifeur INTEGER")
 
+if not column_exists(c, "servers", "mot"):
+    c.execute("ALTER TABLE servers ADD COLUMN mot TEXT")
+
+if not column_exists(c, "servers", "tries"):
+    c.execute("ALTER TABLE servers ADD COLUMN tries INTEGER")
+
 conn.commit()
 
-# Créer la table "users" et ses columns si elles n'existent pas déjà
-c.execute("CREATE TABLE IF NOT EXISTS users (user_id TEXT PRIMARY KEY, wins INTEGER)")
+# Créer les collums d'users si elles n'existent pas déjà
 
 if not column_exists(c, "users", "loses"):
     c.execute("ALTER TABLE users ADD COLUMN loses INTEGER")
@@ -42,7 +48,7 @@ if not column_exists(c, "users", "is_blacklisted"):
 conn.commit()
 
 
-CHANNEL_NAME = 'motus'
+CHANNEL_NAME = 'botus'
 TOKEN=''
 intents = discord.Intents.default()
 intents.message_content = True
@@ -59,10 +65,10 @@ guessed_letters = []
 tries = 0
 
 def resetTries():
-    tries = 0
-    return tries
+    c.execute("UPDATE servers SET tries=0")
+    conn.commit()
     
-def new_word():
+def new_word(guild_id):
     global word
     global guessed_letters
     global tries
@@ -70,6 +76,7 @@ def new_word():
     correct_letters = list(set(list(word.lower())))
     guessed_letters = []
     resetTries()
+    add_mot(guild_id, word)
     return word, correct_letters, guessed_letters, tries
 
 def game_status():
@@ -81,6 +88,20 @@ def game_status():
             word_status += ' :black_large_square: '
     return word_status
 
+
+# Recupere n'importe quelle colonne
+async def get_column(bot, message, column):
+    guild_id = message.guild.id
+    c.execute("SELECT ? FROM servers WHERE server_id=?", (column, guild_id))
+    row = c.fetchone()
+    if row is None:
+        column = 0
+        c.execute("INSERT INTO servers (server_id, column) VALUES (?, ?)", (guild_id, column))
+        conn.commit()
+    else:
+        column = row[0]
+    return column
+
 # Récupère le préfixe du serveur
 async def get_prefix(bot, message):
     guild_id = message.guild.id
@@ -88,35 +109,79 @@ async def get_prefix(bot, message):
     row = c.fetchone()
     if row is None:
         prefix = "!"
-        c.execute("INSERT INTO servers VALUES (?, ?)", (guild_id, prefix))
+        c.execute("INSERT INTO servers (server_id, prefix) VALUES (?, ?)", (guild_id, prefix))
         conn.commit()
     else:
         prefix = row[0]
     return prefix
 
+# Recupère le channel_id du serveur
 async def get_channel_id(bot, message):
     guild_id = message.guild.id
     c.execute("SELECT channel_id FROM servers WHERE server_id=?", (guild_id,))
     row = c.fetchone()
     if row is None:
-        channel_id = message.channel.id
-        c.execute("INSERT INTO servers VALUES (?, ?)", (guild_id, channel_id))
+        channel_id = None
+        c.execute("INSERT INTO servers (server_id, channel_id) VALUES (?, ?)", (guild_id, channel_id))
         conn.commit()
     else:
         channel_id = row[0]
     return channel_id
 
+# Recuperer le mot du serveur
+async def get_mot(guild_id):
+    c.execute("SELECT mot FROM servers WHERE server_id=?", (guild_id,))
+    row = c.fetchone()
+    if row is None:
+        mot = new_word()
+        c.execute("INSERT INTO servers (server_id, mot) VALUES (?, ?)", (guild_id, mot))
+        conn.commit()
+    else:
+        mot = row[0]
+    return mot
+
+async def add_mot(guild_id, mot):
+    c.execute("UPDATE servers SET mot=? WHERE server_id=?", (mot, guild_id))
+    conn.commit()
+
+# Recupere le nombre de tries
+async def get_tries(bot, message):
+    guild_id = message.guild.id
+    c.execute("SELECT tries FROM servers WHERE server_id=?", (guild_id,))
+    row = c.fetchone()
+    if row is None:
+        tries = 0
+        c.execute("INSERT INTO servers (server_id, tries) VALUES (?, ?)", (guild_id, tries))
+        conn.commit()
+    else:
+        tries = row[0]
+    return tries
+
+# Recupère l'option quoifeur du serveur
 async def get_quoifeur(bot, message):
     guild_id = message.guild.id
     c.execute("SELECT quoifeur FROM servers WHERE server_id=?", (guild_id,))
     row = c.fetchone()
     if row is None:
         quoifeur = 0
-        c.execute("INSERT INTO servers VALUES (?, ?)", (guild_id, quoifeur))
+        c.execute("INSERT INTO servers (server_id, quoifeur) VALUES (?, ?)", (guild_id, quoifeur))
         conn.commit()
     else:
         quoifeur = row[0]
     return quoifeur
+
+# Verifie si l'user est blacklisté ou non
+async def is_blacklisted(bot, message):
+    user_id = message.author.id
+    c.execute("SELECT is_blacklisted FROM users WHERE user_id=?", (user_id,))
+    row = c.fetchone()
+    if row is None:
+        is_blacklisted = 0
+        c.execute("INSERT INTO users (user_id, is_blacklisted) VALUES (?, ?)", (user_id, is_blacklisted))
+        conn.commit()
+    else:
+        is_blacklisted = row[0]
+    return is_blacklisted
 
 
 bot = commands.Bot(command_prefix=get_prefix, intents=intents)
@@ -125,7 +190,8 @@ bot = commands.Bot(command_prefix=get_prefix, intents=intents)
 @bot.event
 async def on_ready():
     print('Logged in as', bot.user)
-    await bot.change_presence(activity=discord.Game(name='Maintenant sur le cloud!'))
+    await bot.get_channel(1092509916238979182).send("Bot démarré avec succès!")
+    await bot.change_presence(activity=discord.Game(name='Bo bo botus!'))
 
 # Detecte les messages
 @bot.command()
@@ -139,6 +205,14 @@ async def set_prefix(ctx, prefix: str):
 async def ping(ctx):
     latency = round(bot.latency * 1000)
     await ctx.send(f"Pong! Latence: {latency}ms")
+
+@bot.command()
+async def start(ctx):
+    new_word(ctx.guild.id)
+    tries = 0
+    await ctx.channel.send('Nouveau mot (' + str(len(word)) + ' lettres) : \n' + game_status())
+        
+
 
 # Surveiller les messages mentionnant le bot pour la commande get_prefix
 @bot.event
@@ -183,7 +257,7 @@ async def on_message(message):
 
         await bot.process_commands(message)
 
-        if message.content == '$adcreate': #crée un channel #motus si il n'yen a pas encore
+        if message.content == '$adcreate': #crée un channel #botus si il n'yen a pas encore
             CHANNELS = []
             for salon in message.guild.text_channels:
                 CHANNELS.append(salon.name)
@@ -271,23 +345,23 @@ async def on_message(message):
             await message.channel.send('Lettres essayees retirees!')
                 
         if message.content == '$adhelp': #envoie en DM les commandes admins
-            await message.author.send(':spy: Commandes secretes :spy:: \n\n $adviewtries : Montre le nombre d\'essais \n $admot : Montre le mot \n $adwin : Gagne la partie \n $adlose : Perd la partie \n $adreset : Remet le nombre d\'essais a 0 \n $adletters : Montre les lettres correctes \n $adviewguessed : Montre les lettres essayees \n $adresetguessed : Retire les lettres essayees\n $adblacklist : Blackliste quelqu\'un \n $adunblacklist : Unblackliste quelqu\'un \n $adstatus : Change le status du bot \n $adsay : Fait dire quelque chose au bot \n $adcreate : Crée un channel #motus \n $adstop : Arrete le bot \n $adhelp : Affiche cette liste \n $adrestart : Redemarre le bot \n $adquoifeur : Active le quoifeur \n $adquoifeuroff : Desactive le quoifeur')
+            await message.author.send(':spy: Commandes secretes :spy:: \n\n $adviewtries : Montre le nombre d\'essais \n $admot : Montre le mot \n $adwin : Gagne la partie \n $adlose : Perd la partie \n $adreset : Remet le nombre d\'essais a 0 \n $adletters : Montre les lettres correctes \n $adviewguessed : Montre les lettres essayees \n $adresetguessed : Retire les lettres essayees\n $adblacklist : Blackliste quelqu\'un \n $adunblacklist : Unblackliste quelqu\'un \n $adstatus : Change le status du bot \n $adsay : Fait dire quelque chose au bot \n $adcreate : Crée un channel #botus \n $adstop : Arrete le bot \n $adhelp : Affiche cette liste \n $adrestart : Redemarre le bot \n $adquoifeur : Active le quoifeur \n $adquoifeuroff : Desactive le quoifeur')
             await message.channel.send('Commandes admins secrètes envoyé en mp :ok_hand: :spy:')
 
-    #verifie que le channel est bien motus
+    #verifie que le channel est bien botus
     if message.channel.name == CHANNEL_NAME:
         
         if message.content == '$ping': #ping
             await message.channel.send('Bonjour {}'.format(message.author.mention)+"!")
 
         if message.content.lower() == '$help': #help
-            await message.channel.send('Voici la liste des commandes disponibles: \n\n $start : Commence une nouvelle partie \n $mot : Montre le mot \n $fin : Termine la partie \n $mo mo : motus! \n $help : Affiche cette liste \n $ping : Ping! \n $bug : Signale un bug \n $suggest : Suggere un mot \n $server : Envoie le lien du serveur support')
+            await message.channel.send('Voici la liste des commandes disponibles: \n\n $start : Commence une nouvelle partie \n $mot : Montre le mot \n $fin : Termine la partie \n $bo bo : botus! \n $help : Affiche cette liste \n $ping : Ping! \n $bug : Signale un bug \n $suggest : Suggere un mot \n $server : Envoie le lien du serveur support')
 
-        if message.content.lower() == '$mo mo': #mo mo motus!
-            await message.channel.send('motus!')
+        if message.content.lower() == '$bo bo': #bo bo botus!
+            await message.channel.send('botus!')
 
         if message.content.lower() == '$server': #envoie le lien du serveur support
-            await message.channel.send('Voici le lien du serveur Motus! : https://discord.gg/4M6596sjZa')
+            await message.channel.send('Voici le lien du serveur Botus! : https://discord.gg/4M6596sjZa')
 
         if '$bug' in message.content.lower()[:4]: #report un bug
             if message.content.lower()[5:] == "":
@@ -297,10 +371,10 @@ async def on_message(message):
             # add a reaction (:white_check_mark:) to the message sent in 1090271020956516393
             await message.add_reaction('\U00002705') #white check mark
 
-        if message.content.lower() == '$start': #commence la partie
-            new_word()
-            tries = 0
-            await message.channel.send('Nouveau mot (' + str(len(word)) + ' lettres) : \n' + game_status())
+#        if message.content.lower() == '$start': #commence la partie
+#            new_word()
+#            tries = 0
+#            await message.channel.send('Nouveau mot (' + str(len(word)) + ' lettres) : \n' + game_status())
         
         if message.content.lower() == '$mot': #montre le mot
             await message.channel.send(game_status())
