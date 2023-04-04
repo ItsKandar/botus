@@ -216,7 +216,7 @@ async def start(ctx):
         
 @bot.command()
 @commands.has_permissions(administrator=True)
-async def adquoifeur(ctx, arg):
+async def quoifeur(ctx, arg):
     if arg=='on':
         quoifeur = 1
         guild_id = ctx.guild.id
@@ -283,9 +283,15 @@ async def on_message(message):
 async def on_command_error(ctx, error):
     if isinstance(error, commands.MissingPermissions):
         await ctx.send("Vous n'avez pas les permissions nécessaires pour effectuer cette commande")
+    if isinstance(error, commands.MissingRequiredArgument):
+        await ctx.send("Vous n'avez pas spécifié assez d'arguments")
+    if isinstance(error, commands.CommandNotFound):
+        await ctx.send("Commande inconnue")
     else:
         raise error
-    
+
+# Regarde si la commande existe
+
 @bot.event
 async def on_message(message):
     global tries
@@ -299,7 +305,13 @@ async def on_message(message):
     # Faites pas attention
     if await get_quoifeur(message.guild.id) == 1:
         if 'quoi' in message.content.lower() or 'cwa' in message.content.lower() or 'kwa' in message.content.lower() or 'qwa' in message.content.lower() or 'koi' in message.content.lower() or 'koa' in message.content.lower():
-            await message.channel.send('FEUR')
+            roll = random.randint(0, 10)
+            if roll <= 0.69:
+                await message.channel.send('COUBAKA :star2:')
+            elif 0.69 > roll <= 3:
+                await message.send ('COUBEH :star:')
+            elif roll > 3:
+                await message.channel.send('FEUR')
 
         if 'ui' in message.content.lower():
             roll = random.randint(0, 10)
