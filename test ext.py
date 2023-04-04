@@ -179,7 +179,7 @@ async def is_blacklisted(bot, message):
     return is_blacklisted
 
 
-bot = commands.Bot(command_prefix=get_prefix, intents=intents, help_command=None)
+bot = commands.Bot(command_prefix="$", intents=intents, help_command=None)
 
 # Confirme la connexion
 @bot.event
@@ -259,6 +259,11 @@ async def create_channel(ctx):
     if not existing_channel:
         print(f'Creation du channel {CHANNEL_NAME}')
         await guild.create_text_channel(CHANNEL_NAME)
+
+@bot.command()
+async def bug(ctx, *, arg):
+    await ctx.channel.send('Le bug a été signalé, merci!')
+    await bot.get_channel(1090643512220983346).send("**<@&1090635527058898944>\nBUG REPORT DE " + ctx.author.name + " dans le channel #" + ctx.message.channel + "**\n\n**LIEN DU REPORT**\n" + ctx.message.url + "\n\n**MESSAGE**\n" + arg)
 
 class CustomHelpCommand(commands.HelpCommand):
     async def send_bot_help(self, mapping):
