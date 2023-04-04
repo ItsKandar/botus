@@ -19,12 +19,12 @@ def column_exists(cursor, table_name, column_name):
     return False
 
 # Créer les table "servers" et "users" si elles n'existent pas déjà
-c.execute("CREATE TABLE IF NOT EXISTS servers (server_id TEXT PRIMARY KEY, prefix TEXT)")
-c.execute("CREATE TABLE IF NOT EXISTS users (user_id TEXT PRIMARY KEY, wins INTEGER)")
+c.execute("CREATE TABLE IF NOT EXISTS servers (server_id INTEGER PRIMARY KEY, prefix TEXT)")
+c.execute("CREATE TABLE IF NOT EXISTS users (user_id INTEGER PRIMARY KEY, wins INTEGER)")
 
 # Créer les collumns de "servers" si elles n'existent pas déjà
 if not column_exists(c, "servers", "channel_id"):
-    c.execute("ALTER TABLE servers ADD COLUMN channel_id TEXT")
+    c.execute("ALTER TABLE servers ADD COLUMN channel_id INTEGER")
 
 if not column_exists(c, "servers", "quoifeur"):
     c.execute("ALTER TABLE servers ADD COLUMN quoifeur INTEGER")
@@ -69,15 +69,12 @@ def resetTries():
     conn.commit()
     
 def new_word(guild_id):
-    global word
     global guessed_letters
-    global tries
     word = random.choice(mots_fr)
     correct_letters = list(set(list(word.lower())))
     guessed_letters = []
     resetTries()
-    add_mot(guild_id, word)
-    return word, correct_letters, guessed_letters, tries
+    return word, add_mot(guild_id, word)
 
 def game_status():
     word_status = ''
@@ -108,7 +105,7 @@ async def get_prefix(bot, message):
     c.execute("SELECT prefix FROM servers WHERE server_id=?", (guild_id,))
     row = c.fetchone()
     if row is None:
-        prefix = "!"
+        prefix = "$"
         c.execute("INSERT INTO servers (server_id, prefix) VALUES (?, ?)", (guild_id, prefix))
         conn.commit()
     else:
@@ -116,8 +113,7 @@ async def get_prefix(bot, message):
     return prefix
 
 # Recupère le channel_id du serveur
-async def get_channel_id(bot, message):
-    guild_id = message.guild.id
+async def get_channel_id(guild_id):
     c.execute("SELECT channel_id FROM servers WHERE server_id=?", (guild_id,))
     row = c.fetchone()
     if row is None:
@@ -207,13 +203,27 @@ async def ping(ctx):
 
 @bot.command()
 async def start(ctx):
-    if await get_channel_id(bot, ctx.message) is None:
+    await ctx.channel.send('DEBUG commande correct')
+    await ctx.channel.send('DEBUG le channel est <#' + str(await get_channel_id(ctx.guild.id))+'>')
+    await ctx.channel.send(str(await get_channel_id(ctx.guild.id)) + " + " + str(ctx.channel.id) + " = " + str(await get_channel_id(ctx.guild.id)==ctx.channel.id))
+    if await get_channel_id(ctx.guild.id) is None:
         await ctx.channel.send("Veuillez définir un channel avec la commande `!set_channel`")
-    elif await get_channel_id(bot, ctx.message) == ctx.channel.id:
+    elif await get_channel_id(ctx.guild.id) == ctx.channel.id:
+        await ctx.channel.send('DEBUG channel correct')
         new_word(ctx.guild.id)
         tries = 0
         await ctx.channel.send('Nouveau mot (' + str(len(word)) + ' lettres) : \n' + game_status())
+    else:
+        await ctx.channel.send('DEBUG ERREUR')
         
+@bot.command()
+async def stop(ctx):
+    if await get_channel_id(bot, ctx.message) is None:
+        await ctx.channel.send("Veuillez définir un channel avec la commande `!set_channel`")
+    elif await get_channel_id(bot, ctx.message) == ctx.channel.id:
+        await ctx.channel.send("Partie terminée!")
+        await add_mot(ctx.guild.id, new_word())
+
 @bot.command()
 @commands.has_permissions(administrator=True)
 async def quoifeur(ctx, arg):
