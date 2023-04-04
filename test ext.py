@@ -158,8 +158,7 @@ async def get_tries(bot, message):
     return tries
 
 # Recupère l'option quoifeur du serveur
-async def get_quoifeur(bot, message):
-    guild_id = message.guild.id
+async def get_quoifeur(guild_id):
     c.execute("SELECT quoifeur FROM servers WHERE server_id=?", (guild_id,))
     row = c.fetchone()
     if row is None:
@@ -184,7 +183,7 @@ async def is_blacklisted(bot, message):
     return is_blacklisted
 
 
-bot = commands.Bot(command_prefix=get_prefix, intents=intents)
+bot = commands.Bot(command_prefix=get_prefix, intents=intents, help_command=None)
 
 # Confirme la connexion
 @bot.event
@@ -208,10 +207,64 @@ async def ping(ctx):
 
 @bot.command()
 async def start(ctx):
-    new_word(ctx.guild.id)
-    tries = 0
-    await ctx.channel.send('Nouveau mot (' + str(len(word)) + ' lettres) : \n' + game_status())
+    if await get_channel_id(bot, ctx.message) is None:
+        await ctx.channel.send("Veuillez définir un channel avec la commande `!set_channel`")
+    elif await get_channel_id(bot, ctx.message) == ctx.channel.id:
+        new_word(ctx.guild.id)
+        tries = 0
+        await ctx.channel.send('Nouveau mot (' + str(len(word)) + ' lettres) : \n' + game_status())
         
+@bot.command()
+@commands.has_permissions(administrator=True)
+async def adquoifeur(ctx, arg):
+    if arg=='on':
+        quoifeur = 1
+        guild_id = ctx.guild.id
+        c.execute("UPDATE servers SET quoifeur=? WHERE server_id=?", (quoifeur, guild_id))
+        conn.commit()
+        await ctx.channel.send('Quoifeur activé!')
+    elif arg=='off':
+        quoifeur = 0
+        guild_id = ctx.guild.id
+        c.execute("UPDATE servers SET quoifeur=? WHERE server_id=?", (quoifeur, guild_id))
+        conn.commit()
+        await ctx.channel.send('Quoifeur désactivé!')
+    else:
+        await ctx.channel.send('Argument invalide!')
+
+@bot.command()
+@commands.has_permissions(administrator=True)
+async def set_channel(ctx, channel: discord.TextChannel):
+    guild_id = ctx.guild.id
+    channel_id = channel.id
+    c.execute("UPDATE servers SET channel_id=? WHERE server_id=?", (channel_id, guild_id))
+    conn.commit()
+    await ctx.send(f"Channel de jeu mis à jour: {channel}")
+
+@bot.command()
+@commands.has_permissions(administrator=True)
+async def create_channel(ctx):
+    guild = ctx.guild
+    existing_channel = discord.utils.get(guild.channels, name=CHANNEL_NAME)
+    if not existing_channel:
+        print(f'Creation du channel {CHANNEL_NAME}')
+        await guild.create_text_channel(CHANNEL_NAME)
+
+class CustomHelpCommand(commands.HelpCommand):
+    async def send_bot_help(self, mapping):
+        ctx = self.context
+        is_admin = ctx.author.guild_permissions.administrator
+
+        embed = discord.Embed(title="Liste des commandes !", color=discord.Color.blue())
+
+        if is_admin:
+            embed.add_field(name="Commandes Admins", value="A faire", inline=False)
+
+        embed.add_field(name="Commandes de jeu", value="`start` : commence une partie\n`help` : affiche cette liste", inline=False)
+
+        await ctx.send(embed=embed)
+
+bot.help_command = CustomHelpCommand()
 
 
 # Surveiller les messages mentionnant le bot pour la commande get_prefix
@@ -227,6 +280,13 @@ async def on_message(message):
     await bot.process_commands(message)
 
 @bot.event
+async def on_command_error(ctx, error):
+    if isinstance(error, commands.MissingPermissions):
+        await ctx.send("Vous n'avez pas les permissions nécessaires pour effectuer cette commande")
+    else:
+        raise error
+    
+@bot.event
 async def on_message(message):
     global tries
     global correct_letters
@@ -237,8 +297,8 @@ async def on_message(message):
         return
 
     # Faites pas attention
-    if get_quoifeur == 1:
-        if 'quoi' in message.content.lower() or 'cwa' in message.content.lower() or 'kwa' in message.content.lower() or 'qwa' in message.content.lower() or 'koi' in message.content.lower():
+    if await get_quoifeur(message.guild.id) == 1:
+        if 'quoi' in message.content.lower() or 'cwa' in message.content.lower() or 'kwa' in message.content.lower() or 'qwa' in message.content.lower() or 'koi' in message.content.lower() or 'koa' in message.content.lower():
             await message.channel.send('FEUR')
 
         if 'ui' in message.content.lower():
@@ -276,14 +336,17 @@ async def on_message(message):
             await message.channel.send('Arret en cours...')
             await bot.close()
 
-        if message.content == '$adquoifeur':
+        if message.content == "$adgetchannelid":
+            await message.channel.send(await get_channel_id(bot, message))
+        
+        if message.content == '$adquoifeur on':
             quoifeur = 1
             guild_id = message.guild.id
             c.execute("UPDATE servers SET quoifeur=? WHERE server_id=?", (quoifeur, guild_id))
             conn.commit()
             await message.channel.send('Quoifeur activé!')
 
-        if message.content == '$adquoifeuroff':
+        if message.content == '$adquoifeur off':
             quoifeur = 0
             guild_id = message.guild.id
             c.execute("UPDATE servers SET quoifeur=? WHERE server_id=?", (quoifeur, guild_id))
@@ -318,7 +381,6 @@ async def on_message(message):
             new_word()
             tries = 0
             await message.channel.send('Nouveau mot (' + str(len(word)) + ' lettres) : \n' + game_status())
-        
 
         if message.content == '$adlose': #perd la partie
             await message.channel.send('Vous avez perdu! Le mot etait "' + word.upper() + '".')
@@ -326,7 +388,6 @@ async def on_message(message):
             tries = 0
             await message.channel.send('Nouveau mot (' + str(len(word)) + ' lettres) : \n' + game_status())
         
-
         if message.content == '$adreset': #remet le nombre d'essais a 0
             resetTries()
             await message.channel.send('Nombre d\'essais remis a 0!')
