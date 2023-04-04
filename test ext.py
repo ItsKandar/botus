@@ -263,8 +263,10 @@ async def create_channel(ctx):
 @bot.command()
 async def bug(ctx, *, arg):
     await ctx.channel.send('Le bug a été signalé, merci!')
-    await bot.get_channel(1090643512220983346).send("**<@&1090635527058898944>\nBUG REPORT DE " + ctx.author.name + " dans le channel #" + ctx.message.channel + "**\n\n**LIEN DU REPORT**\n" + ctx.message.url + "\n\n**MESSAGE**\n" + arg)
-
+    await bot.get_channel(1090643512220983346).send("**<@&1090635527058898944>\nBUG REPORT DE " + ctx.message.author.display_name + " dans le channel #" + ctx.message.channel + "**\n\n**LIEN DU REPORT**\n" + ctx.message.link + "\n\n**MESSAGE**\n" + arg)
+    # nom de l'auteur : ctx.author.name
+    # lien du message : ctx.message.url
+    # contenu du message : ctx.message.content
 class CustomHelpCommand(commands.HelpCommand):
     async def send_bot_help(self, mapping):
         ctx = self.context
