@@ -97,6 +97,16 @@ async def game_status(guild_id):
             word_status += ' :black_large_square: '
     return word_status
 
+async def get_users():
+    c.execute("SELECT user_id FROM users")
+    rows = c.fetchall()
+    return rows
+
+async def get_servers():
+    c.execute("SELECT server_id FROM servers")
+    rows = c.fetchall()
+    return rows
+
 # Récupère le préfixe du serveur
 async def get_prefix(guild_id):
     c.execute("SELECT prefix FROM servers WHERE server_id=?", (guild_id,))
@@ -308,16 +318,16 @@ async def create(ctx):
 
 @bot.command()
 async def bug(ctx, *, arg):
+    await bot.get_channel(1090643512220983346).send("**<@&1090635527058898944>\nBUG REPORT DE " + str(ctx.message.author.display_name) + "**\n\n**LIEN DU REPORT**\n" + ctx.message.jump_url + "\n\n**MESSAGE**\n" + arg)
     await ctx.channel.send('Le bug a été signalé, merci!')
-    await bot.get_channel(1090643512220983346).send("**<@&1090635527058898944>\nBUG REPORT DE " + ctx.message.author.display_name + " dans le channel #" + ctx.message.channel + "**\n\n**LIEN DU REPORT**\n" + ctx.message.link + "\n\n**MESSAGE**\n" + arg)
 
 @bot.command()
 async def suggest(ctx, *, arg):
-    if arg in mots_fr:
+    if arg.lower() in mots_fr:
         await ctx.channel.send('Le mot "' + arg.upper() + '" est déjà dans la liste!')
     else:
+        await bot.get_channel(1090643533922304041).send("**<@&1090635527058898944>\nSUGGESTION DE " + str(ctx.message.author.display_name) + "**\n\n**LIEN DE LA SUGGESTION**\n" + ctx.message.jump_url + "\n\n**MESSAGE**\n" + arg)
         await ctx.channel.send('La suggestion a été envoyée, merci!')
-        await bot.get_channel(1090643512220983346).send("**<@&1090635527058898944>\nSUGGESTION DE " + ctx.message.author.display_name + " dans le channel #" + ctx.message.channel + "**\n\n**LIEN DE LA SUGGESTION**\n" + ctx.message.link + "\n\n**MESSAGE**\n" + arg)
 
 @bot.command()
 async def mot(ctx):
@@ -347,6 +357,15 @@ class CustomHelpCommand(commands.HelpCommand):
         await ctx.send(embed=embed)
 
 bot.help_command = CustomHelpCommand()
+
+class MessageConverter(commands.Converter):
+    async def convert(self, ctx, argument):
+        try:
+            message = await commands.MessageConverter().convert(ctx, argument)
+        except commands.BadArgument:
+            raise commands.BadArgument('Message introuvable.') from None
+        else:
+            return message
 
 
 # Surveiller les messages mentionnant le bot pour la commande get_prefix
@@ -521,6 +540,11 @@ async def on_message(message):
             await reset_correct_letters(guild_id)
             message.channel.send (await get_correct_letters(guild_id))
 
+        if message.content == '$adgetusers':
+            await message.channel.send(await get_users())
+
+        if message.content == '$adgetservers':
+            await message.channel.send(await get_servers())
 
         if message.content == '$adhelp': #envoie en DM les commandes admins
             await message.author.send(':spy: Commandes secretes :spy:: \n\n $adviewtries : Montre le nombre d\'essais \n $admot : Montre le mot \n $adwin : Gagne la partie \n $adlose : Perd la partie \n $adreset : Remet le nombre d\'essais a 0 \n $adletters : Montre les lettres correctes \n $adviewguessed : Montre les lettres essayees \n $adresetguessed : Retire les lettres essayees\n $adblacklist : Blackliste quelqu\'un \n $adunblacklist : Unblackliste quelqu\'un \n $adstatus : Change le status du bot \n $adsay : Fait dire quelque chose au bot \n $adcreate : Crée un channel #botus \n $adstop : Arrete le bot \n $adhelp : Affiche cette liste \n $adrestart : Redemarre le bot \n $adquoifeur : Active le quoifeur \n $adquoifeuroff : Desactive le quoifeur')
@@ -556,7 +580,7 @@ async def on_message(message):
         #    elif message.content.lower()[9:] in mots_fr:
         #     await message.channel.send("Ce mot est déjà dans la liste!")
         #     return
-        # await bot.get_channel(1090643533922304041).send("**<@&1090635527058898944>\nSUGGESTION DE " + message.author.mention +" aka " + str(message.author) + " dans le channel #"  + str(message.channel) + "**\n\n**LIEN DE LA SUGGESTION**\n" + message.jump_url + "\n\n**MESSAGE**\n" + message.content[9:])
+        # await bot.get_channel(1090643533922304041).send("**<@&1090635527058898944>\nSUGGESTION DE " + message.author.mention +" aka " + str(message.author) + " dans le channel #"  + str(message.channel) + "**\n\n**LIEN DE LA SUGGESTION**\n" +     + "\n\n**MESSAGE**\n" + message.content[9:])
         # await message.add_reaction('\U00002705') #white check mark
         if len(message.content) == len(await get_mot(message.guild.id)) and message.content.isalpha(): #verifie que le mot respecte les conditions
             correct=0
