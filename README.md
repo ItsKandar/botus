@@ -1,6 +1,6 @@
-# Motus sur Discord
+# Botus
 
-Jouez au célèbre jeu de mots "Motus" directement sur Discord avec vos amis !
+Inspiré par le celebre jeu TV "Motus"
 
 ## Comment ajouter le bot ?
 
@@ -12,7 +12,7 @@ Rejoignez le serveur Discord pour obtenir de l'aide, poser des questions ou prop
 
 ## Commandes disponibles
 
-Voici la liste des commandes disponibles pour jouer à Motus sur Discord (**Attention, vous devez d'abord definir le channel avec `set`**):
+Voici la liste des commandes disponibles (**Attention, vous devez d'abord definir le channel avec `set`**):
 
 Commandes admins :
 - `set` : defini le channel dans lequels le bot sera utilisable
@@ -35,9 +35,13 @@ Commandes utilisateurs :
 2. Le bot affichera un mot à deviner avec les lettres masquées
 3. Proposez un mot directement dans le chat
 4. Le bot va renvoyer votre mot avec en dessous des carrées rouge, jaune ou noir
-ROUGE signifie que la lettre est correctement placé
-JAUNE signifie que la lettre n'est pas correctement placé
-NOIR siginifie que la lettre n'est pas dans le mot
+
+**ROUGE** signifie que la lettre est correctement placé
+
+**JAUNE** signifie que la lettre n'est pas correctement placé
+
+**NOIR** siginifie que la lettre n'est pas dans le mot
+
 5. Vous avez 6 essais, si vous trouvez le mot, le jeu se termine et vous gagnez. Sinon, continuez à proposer des mots jusqu'à ce que vous le trouviez ou que vous décidiez d'arrêter la partie en tapant `$fin`!
 
 Amusez-vous bien et bonne chance !
