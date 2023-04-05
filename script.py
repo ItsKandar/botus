@@ -527,11 +527,11 @@ async def on_message(message):
             conn.commit()
             await message.channel.send('Quoifeur désactivé!')
 
-        if '$adsay' in message.content:
+        if message.content[:6] == '$adsay':
             await message.channel.send(message.content[7:])
             await message.delete()
 
-        if '$adstatus' in message.content:
+        if message.content[:9] == '$adstatus':
             await bot.change_presence(activity=discord.Game(name=message.content[9:]))
             await message.channel.send('Status changé!')
 
@@ -554,55 +554,56 @@ async def on_message(message):
             else:
                 await message.channel.send('Une erreur est survenue!')
 
-        if '$adaddwins' in message.content:
+        if message.content[:10] == '$adaddwins': #ajoute des victoires
             user_id = message.mentions[0].id
             await add_win(user_id)
             await message.channel.send('1 victoire ajoutée a ' + message.mentions[0].name + '!')
         
-        if message.content == '$admot': #montre le mot
+        if message.content[:6] == '$admot': #montre le mot
             guild_id = message.content[7:]
             word = await get_mot(guild_id)
             await message.author.send('Le mot est : ' + word.upper() + ' !')
             await message.channel.send('Le mot a été envoyé en DM!')
 
-        if message.content == '$adwin': #gagne la partie
+        if message.content[6:] == '$adwin': #gagne la partie
             guild_id=message.content[7:]
             word= await get_mot(guild_id)
             await message.channel.send('Bravo, vous avez trouvé! Le mot etait bien "' + word.upper() + '" !')
             await new_word(guild_id)
             await message.channel.send('Nouveau mot (' + str(len(word)) + ' lettres) : \n' + game_status(guild_id))
 
-        if message.content == '$adlose': #perd la partie
+        if message.content[:7] == '$adlose': #perd la partie
             guild_id=message.content[8:]
             word = await get_mot(guild_id)
             await message.channel.send('Vous avez perdu! Le mot etait "' + word.upper() + '".')
             await new_word(guild_id)
             await message.channel.send('Nouveau mot (' + str(len(word)) + ' lettres) : \n' + game_status())
         
-        if message.content == '$adreset': #remet le nombre d'essais a 0
+        if message.content[:8] == '$adreset': #remet le nombre d'essais a 0
             guild_id=message.content[9:]
             await resetTries(guild_id)
             await message.channel.send('Nombre d\'essais remis a 0!')
 
-        if message.content == '$adviewtries': #montre le nombre d'essais
+        if message.content[:11] == '$adviewtries': #montre le nombre d'essais
             guild_id=message.content[12:]
             tries = await get_tries(guild_id)
             await message.channel.send('Nombre d\'essais : ' + str(tries))
 
-        if message.content=='$adviewguessed': #montre les lettres essayees
+        if message.content[:14]=='$adviewguessed': #montre les lettres essayees
             guild_id=message.content[15:]
             guessed_letters = await get_guessed_letters(guild_id)
             await message.channel.send('Lettres essayees : ' + str(guessed_letters))
         
-        if message.content == '$adresetguessed': #retire les lettres essayees
-            guessed_letters = []
-            await message.channel.send('Lettres essayees retirees!')
+        if message.content[:14] == '$adresetguessed': #retire les lettres essayees
+            guild_id=message.content[15:]
+            await reset_guessed_letters(guild_id)
+            await message.channel.send('Lettres essayees remises a 0!')
             
-        if message.content == '$adletters': #montre les lettres correctes
+        if message.content[:10] == '$adletters': #montre les lettres correctes
             guild_id=message.content[11:]
             message.channel.send (await get_correct_letters(guild_id))
 
-        if message.content == '$adresetletters':
+        if message.content[:13] == '$adresetletters':
             guild_id=message.content[14:]
             await reset_correct_letters(guild_id)
             message.channel.send (await get_correct_letters(guild_id))
