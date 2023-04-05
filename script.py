@@ -1,7 +1,35 @@
 import discord
+from discord.ext import commands
+import sqlite3
 import random
 from mots.mots import mots_fr
 from config import RE_TOKEN, BLACKLIST, DEV_ID, DEV_TOKEN, DEVMODE
+
+# Créer ou ouvrir la base de données SQLite
+conn = sqlite3.connect("servers.db")
+c = conn.cursor()
+
+# Créer la table "servers" et ses columns si elles n'existent pas déjà
+def column_exists(cursor, table_name, column_name):
+    cursor.execute("PRAGMA table_info({})".format(table_name))
+    columns = cursor.fetchall()
+    for column in columns:
+        if column[1] == column_name:
+            return True
+    return False
+
+c.execute("CREATE TABLE IF NOT EXISTS servers (id TEXT PRIMARY KEY, prefix TEXT)")
+conn.commit()
+
+if not column_exists(c, "servers", "channel_id"):
+    c.execute("ALTER TABLE servers ADD COLUMN channel_id TEXT")
+
+if not column_exists(c, "servers", "quoifeur"):
+    c.execute("ALTER TABLE servers ADD COLUMN quoifeur TEXT")
+
+conn.commit()
+
+
 
 CHANNEL_NAME = 'motus'
 TOKEN=''
@@ -42,12 +70,39 @@ def game_status():
 
 class MyClient(discord.Client):
     
+    # Initialise le bot
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.quoifeur = 0
         new_word()
         resetTries()
 
+    # Récupère le préfixe du serveur
+    async def get_prefix(bot, message):
+        guild_id = message.guild.id
+        c.execute("SELECT prefix FROM servers WHERE id=?", (guild_id,))
+        row = c.fetchone()
+        if row is None:
+            prefix = "!"
+            c.execute("INSERT INTO servers VALUES (?, ?)", (guild_id, prefix))
+            conn.commit()
+        else:
+            prefix = row[0]
+        return prefix
+    
+    
+    async def get_channel_id(bot, message):
+        guild_id = message.guild.id
+        c.execute("SELECT channel_id FROM servers WHERE id=?", (guild_id,))
+        row = c.fetchone()
+        if row is None:
+            channel_id = message.channel.id
+            c.execute("INSERT INTO servers VALUES (?, ?)", (guild_id, channel_id))
+            conn.commit()
+        else:
+            channel_id = row[0]
+        return channel_id
+    
     # Confirme la connexion
     async def on_ready(self):
         print('Logged in as', self.user)
