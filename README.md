@@ -16,14 +16,18 @@ Voici la liste des commandes disponibles (**Attention, vous devez d'abord defini
 
 Commandes admins :
 - `set` : defini le channel dans lequels le bot sera utilisable
+- `create` : crée un channel "botus"
+- `prefix` : change le prefix du bot
 - `quoifeur (on/off)` : active/desactive les reponses automatiques du bot quand quelqu'un dit "quoi" ou d'autres mots :)
 
 Commandes utilisateurs :
 - `ping` : Pong (affiche la latence)!
 - `bobo` : Botus !
 - `start` : Commence une nouvelle partie
-- `mot` : Envoie le mot (Toujours caché)
 - `fin` : Termine la partie en cours
+- `mot` : Envoie le mot (Toujours caché)
+- `stats` : Montre le nombre de victoires
+- `classement` : Montre le classement des victoires
 - `suggest` : Pour suggerer une modification ou un mot
 - `bug` : Report un bug
 - `server` : Envoie le lien vers le serveur support

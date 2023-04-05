@@ -3,6 +3,7 @@ from discord.ext import commands
 import sqlite3
 import random
 from mots.mots import mots_fr
+from mots.dico import dico_fr
 from config import RE_TOKEN, DEV_ID, DEV_TOKEN, DEVMODE
 
 # Créer ou ouvrir la base de données SQLite
@@ -65,8 +66,6 @@ if DEVMODE:
 else:
     TOKEN=RE_TOKEN
 
-guessed_letters = []
-
 async def resetTries(guild_id):
     c.execute("UPDATE servers SET tries=0 WHERE server_id=?", (guild_id,))
     conn.commit()
@@ -76,22 +75,74 @@ async def add_tries(guild_id):
     conn.commit()
     
 async def new_word(guild_id):
-    global guessed_letters
     word = random.choice(mots_fr)
-    correct_letters=[]
-    guessed_letters = []
+    await reset_correct_letters(guild_id)
+    await reset_guessed_letters(guild_id)
     await resetTries(guild_id)
     await add_mot(guild_id, word)
-    for letter in word.lower():
-        correct_letters.append(letter)
-        await add_correct_letters(guild_id, correct_letters)
     return word
+
+async def get_wins(user_id):
+    c.execute("SELECT wins FROM users WHERE user_id=?", (user_id,))
+    row = c.fetchone()
+    if row is None:
+        return 0  # renvoie une valeur par défaut de 0 si aucune ligne ne correspond à l'utilisateur spécifié
+    else:
+        wins = row[0]
+        return wins
+    
+async def reset_wins(user_id):
+    c.execute("UPDATE users SET wins=0 WHERE user_id=?", (user_id,))
+    conn.commit()
+
+async def get_loses(user_id):
+    c.execute("SELECT loses FROM users WHERE user_id=?", (user_id,))
+    row = c.fetchone()
+    if row is None:
+        loses = 0
+        c.execute("INSERT INTO users (user_id, loses) VALUES (?, ?)", (user_id, loses))
+        conn.commit()
+    else:
+        loses = row[0]
+    return loses
+
+async def add_win(user_id):
+    wins = await get_wins(user_id)
+    if wins is not None:
+        c.execute("UPDATE users SET wins=wins+1 WHERE user_id=?", (user_id,))
+        conn.commit()
+    else:
+        try:
+            c.execute("INSERT INTO users (user_id, wins) VALUES (?, ?)", (user_id, 1))
+            conn.commit()
+        except sqlite3.IntegrityError:
+            pass
+
+async def add_lose(user_id):
+    await get_loses(user_id)
+    c.execute("UPDATE users SET loses=loses+1 WHERE user_id=?", (user_id,))
+    conn.commit()
+
+async def get_leaderboard():
+    leaderboard=""
+    c.execute("SELECT user_id, wins FROM users WHERE wins IS NOT NULL ORDER BY wins DESC")
+    rows = c.fetchall()
+    for row in rows:
+        user_id = row[0]
+        wins = row[1]
+        if wins is not None:
+            user = await bot.fetch_user(user_id)
+            username = user.name
+            tag = user.discriminator
+            leaderboard += f"{username}#{tag} : {wins} victoires\n"
+    return leaderboard
+
 
 async def game_status(guild_id):
     word = await get_mot(guild_id)
     word_status = ''
     for letter in word.lower():
-        if letter in guessed_letters:
+        if letter in await get_guessed_letters(guild_id):
             word_status += ' :regional_indicator_' + letter.lower() + ': '
         else:
             word_status += ' :black_large_square: '
@@ -145,6 +196,7 @@ async def get_mot(guild_id):
 
 async def add_mot(guild_id, mot):
     c.execute("UPDATE servers SET mot=? WHERE server_id=?", (mot, guild_id))
+    c.execute("UPDATE servers SET correct_letters=? WHERE server_id=?", (mot, guild_id))
     conn.commit()
 
 # Recupere les lettres correctes
@@ -158,11 +210,6 @@ async def get_correct_letters(guild_id):
     else:
         correct_letters = row[0]
     return correct_letters
-
-async def add_correct_letters(guild_id, letter):
-    for letters in letter:
-        c.execute("UPDATE servers SET correct_letters=? WHERE server_id=?", (letters, guild_id))
-    conn.commit()
 
 async def reset_correct_letters(guild_id):
     c.execute("UPDATE servers SET correct_letters=? WHERE server_id=?", ("", guild_id))
@@ -256,29 +303,22 @@ async def ping(ctx):
 
 @bot.command()
 async def start(ctx):
-    await ctx.channel.send('DEBUG commande correct')
-    await ctx.channel.send('DEBUG le channel est <#' + str(await get_channel_id(ctx.guild.id))+'>')
-    await ctx.channel.send(str(await get_channel_id(ctx.guild.id)) + " + " + str(ctx.channel.id) + " = " + str(await get_channel_id(ctx.guild.id)==ctx.channel.id))
     if await get_channel_id(ctx.guild.id) is None:
-        await ctx.channel.send("Veuillez définir un channel avec la commande `!set_channel`")
+        await ctx.channel.send("Veuillez définir un channel avec la commande `set`")
     elif await get_channel_id(ctx.guild.id) == ctx.channel.id:
-        await ctx.channel.send('DEBUG channel correct')
         await new_word(ctx.guild.id)
-        word = await get_mot(ctx.guild.id)
-        await ctx.channel.send('DEBUG mot = '+ word)
-        await ctx.channel.send('Nouveau mot (' + str(len(word)) + ' lettres) : \n' + await game_status(ctx.guild.id))
+        await ctx.channel.send('Nouveau mot (' + str(len(await get_mot(ctx.guild.id))) + ' lettres) : \n' + await game_status(ctx.guild.id))
     else:
-        await ctx.channel.send('DEBUG ERREUR')
+        await ctx.channel.send('ERREUR')
         
 @bot.command()
 async def fin(ctx):
     if await get_channel_id(ctx.guild.id) is None:
-        await ctx.channel.send("Veuillez définir un channel avec la commande `!set_channel`")
+        await ctx.channel.send("Veuillez définir un channel avec la commande `set`")
     elif await get_channel_id(ctx.guild.id) == ctx.channel.id:
-        word = await get_mot(ctx.guild.id)
-        await ctx.channel.send('Le mot etait "' + word.upper() + '".')
+        await ctx.channel.send('Le mot etait "' + str(await get_mot(ctx.guild.id)).upper() + '".')
         await new_word(ctx.guild.id)
-        await ctx.channel.send('Nouveau mot (' + str(len(word)) + ' lettres) : \n' + await game_status(ctx.guild.id))
+        await ctx.channel.send('Nouveau mot (' + str(len(await get_mot(ctx.guild.id))) + ' lettres) : \n' + await game_status(ctx.guild.id))
 
 @bot.command()
 @commands.has_permissions(administrator=True)
@@ -296,7 +336,7 @@ async def quoifeur(ctx, arg):
         conn.commit()
         await ctx.channel.send('Quoifeur désactivé!')
     else:
-        await ctx.channel.send('Argument invalide!')
+        await ctx.channel.send('Argument invalide! (on/off)')
 
 @bot.command()
 @commands.has_permissions(administrator=True)
@@ -339,6 +379,17 @@ async def bobo(ctx):
     await ctx.channel.send('Botus!')
 
 @bot.command()
+async def stats(ctx):
+    if await get_wins(ctx.author.id) is None:
+        await ctx.channel.send('Vous n\'avez pas encore de victoires!')
+    else:
+        await ctx.channel.send('Vous avez **' + str(await get_wins(ctx.author.id)) + '** victoires.')
+
+@bot.command()
+async def classement(ctx):
+    await ctx.channel.send('**CLASSEMENT GLOBAL**\n\n' + str(await get_leaderboard()))
+
+@bot.command()
 async def server(ctx):
     await ctx.channel.send('Voici le lien du serveur Botus! : https://discord.gg/4M6596sjZa')
     
@@ -350,9 +401,9 @@ class CustomHelpCommand(commands.HelpCommand):
         embed = discord.Embed(title="Liste des commandes !", color=discord.Color.blue())
 
         if is_admin:
-            embed.add_field(name="Commandes Admins", value="A faire", inline=False)
+            embed.add_field(name="Commandes Admins", value="`set` : définir le channel de jeu\n`create` : créer le channel de jeu\n`quoifeur (on/off)` : activer/désactiver le quoifeur\n`prefix` : définir le préfixe du bot", inline=False)
 
-        embed.add_field(name="Commandes de jeu", value="`start` : commence une partie\n`help` : affiche cette liste", inline=False)
+        embed.add_field(name="Commandes de jeu", value="`start` : commence une partie\n`fin` : finit une partie\n`mot` : affiche le mot en cours\n`bobo` : botus!\n`stats` : affiche vos statistiques\n`classement` : affiche le classement global\n`server` : affiche le lien du serveur Botus\n`bug` : signaler un bug\n`suggest` : proposer un mot\n`help` : affiche cette liste", inline=False)
 
         await ctx.send(embed=embed)
 
@@ -402,6 +453,12 @@ async def on_message(message):
     if message.author == bot.user or await is_blacklisted(message.author.id):
         return
 
+    if bot.user in message.mentions:
+        prefix = await get_prefix(message.guild.id)
+        if prefix==None:
+            prefix = "$"
+        await message.channel.send(f"Le préfixe actuel pour ce serveur est : `{prefix}`")
+
     # Faites pas attention
     if await get_quoifeur(message.guild.id) == 1:
         if 'quoi' in message.content.lower() or 'cwa' in message.content.lower() or 'kwa' in message.content.lower() or 'qwa' in message.content.lower() or 'koi' in message.content.lower() or 'koa' in message.content.lower():
@@ -423,21 +480,26 @@ async def on_message(message):
 
     if message.author.id in DEV_ID: #admin commands :)
 
-        if bot.user in message.mentions:
-            prefix = await get_prefix(bot, message)
-            await message.channel.send(f"Le préfixe actuel pour ce serveur est : `{prefix}`")
-
         await bot.process_commands(message)
 
         if message.content == '$adcreate': #crée un channel #botus si il n'yen a pas encore
-            CHANNELS = []
-            for salon in message.guild.text_channels:
-                CHANNELS.append(salon.name)
-            if CHANNEL_NAME not in CHANNELS: #verifie si le channel existe deja
-                await message.guild.create_text_channel(CHANNEL_NAME) #crée le channel
-                await message.channel.send('Channel créé!')
+            guild_id = message.guild.id
+            channel_id = await get_channel_id(guild_id)
+            if channel_id is None:
+                await message.channel.send('Création du channel en cours...')
+                channel = await message.guild.create_text_channel(CHANNEL_NAME)
+                await channel.send('Channel créé!')
+                c.execute("INSERT INTO servers VALUES (?, ?)", (guild_id, channel.id))
+                conn.commit()
             else:
-                await message.channel.send('Le channel existe deja!')
+                await message.channel.send('Le channel existe déjà!')
+
+        if message.content == '$adset': #set le channel #botus
+            guild_id = message.guild.id
+            channel_id = message.channel.id
+            c.execute("UPDATE servers SET channel_id=? WHERE server_id=?", (channel_id, guild_id))
+            conn.commit()
+            await message.channel.send('Channel défini!')
 
         if message.content == '$adrestart': #restart bot
             await message.channel.send('Redemarrage en cours...')
@@ -492,6 +554,11 @@ async def on_message(message):
             else:
                 await message.channel.send('Une erreur est survenue!')
 
+        if '$adaddwins' in message.content:
+            user_id = message.mentions[0].id
+            await add_win(user_id)
+            await message.channel.send('1 victoire ajoutée a ' + message.mentions[0].name + '!')
+        
         if message.content == '$admot': #montre le mot
             guild_id = message.content[7:]
             word = await get_mot(guild_id)
@@ -547,80 +614,65 @@ async def on_message(message):
             await message.channel.send(await get_servers())
 
         if message.content == '$adhelp': #envoie en DM les commandes admins
-            await message.author.send(':spy: Commandes secretes :spy:: \n\n $adviewtries : Montre le nombre d\'essais \n $admot : Montre le mot \n $adwin : Gagne la partie \n $adlose : Perd la partie \n $adreset : Remet le nombre d\'essais a 0 \n $adletters : Montre les lettres correctes \n $adviewguessed : Montre les lettres essayees \n $adresetguessed : Retire les lettres essayees\n $adblacklist : Blackliste quelqu\'un \n $adunblacklist : Unblackliste quelqu\'un \n $adstatus : Change le status du bot \n $adsay : Fait dire quelque chose au bot \n $adcreate : Crée un channel #botus \n $adstop : Arrete le bot \n $adhelp : Affiche cette liste \n $adrestart : Redemarre le bot \n $adquoifeur : Active le quoifeur \n $adquoifeuroff : Desactive le quoifeur')
+            await message.author.send(':spy: Commandes secretes :spy:: \n\n $adblacklist : Blackliste un utilisateur \n $adunblacklist : Unblackliste un utilisateur \n $adaddwins : Ajoute une victoire a un utilisateur \n $admot : Montre le mot \n $adwin : Gagne la partie \n $adlose : Perd la partie \n $adreset : Remet le nombre d\'essais a 0 \n $adviewtries : Montre le nombre d\'essais \n $adviewguessed : Montre les lettres essayees \n $adresetguessed : Retire les lettres essayees \n $adletters : Montre les lettres correctes \n $adresetletters : Retire les lettres correctes \n $adgetusers : Montre la liste des utilisateurs \n $adgetservers : Montre la liste des serveurs \n $adhelp : Envoie en DM les commandes admins')
             await message.channel.send('Commandes admins secrètes envoyé en mp :ok_hand: :spy:')
 
     #verifie que le channel est bien botus
-    if message.channel.name == CHANNEL_NAME:
-        
-        # if message.content == '$ping': #ping
-        #     await message.channel.send('Bonjour {}'.format(message.author.mention)+"!")
+    if message.channel.id == await get_channel_id(message.guild.id) and message.content.lower() in dico_fr:
 
-        # if message.content.lower() == '$help': #help
-        #     await message.channel.send('Voici la liste des commandes disponibles: \n\n $start : Commence une nouvelle partie \n $mot : Montre le mot \n $fin : Termine la partie \n $bo bo : botus! \n $help : Affiche cette liste \n $ping : Ping! \n $bug : Signale un bug \n $suggest : Suggere un mot \n $server : Envoie le lien du serveur support')
-
-        # if message.content.lower() == '$bo bo': #bo bo botus!
-        #     await message.channel.send('botus!')
-
-        # if message.content.lower() == '$server': #envoie le lien du serveur support
-        #     await message.channel.send('Voici le lien du serveur Botus! : https://discord.gg/4M6596sjZa')
-
-        # if '$bug' in message.content.lower()[:4]: #report un bug
-        #     if message.content.lower()[5:] == "":
-        #         await message.channel.send("Merci de decrire le bug!")
-        #         return
-        #     await bot.get_channel(1090643512220983346).send("**<@&1090635527058898944>\nBUG REPORT DE " + message.author.mention +" aka " + str(message.author) + " dans le channel #"  + str(message.channel) + "**\n\n**LIEN DU REPORT**\n" + message.jump_url + "\n\n**MESSAGE**\n" + message.content[5:])
-        #     # add a reaction (:white_check_mark:) to the message sent in 1090271020956516393
-        #     await message.add_reaction('\U00002705') #white check mark
-
-        #if "$suggest" in message.content.lower()[:8]: #suggestion
-        #    if message.content.lower()[9:] == "":
-        #        await message.channel.send("Vous n'avez pas donné de suggestions!")
-        #        return
-        #    elif message.content.lower()[9:] in mots_fr:
-        #     await message.channel.send("Ce mot est déjà dans la liste!")
-        #     return
-        # await bot.get_channel(1090643533922304041).send("**<@&1090635527058898944>\nSUGGESTION DE " + message.author.mention +" aka " + str(message.author) + " dans le channel #"  + str(message.channel) + "**\n\n**LIEN DE LA SUGGESTION**\n" +     + "\n\n**MESSAGE**\n" + message.content[9:])
-        # await message.add_reaction('\U00002705') #white check mark
         if len(message.content) == len(await get_mot(message.guild.id)) and message.content.isalpha(): #verifie que le mot respecte les conditions
+            status=""
             correct=0
-            for letter in await get_correct_letters(message.guild.id): #Si les lettres de guessed_letters peuvent former le mot 
-                if letter in guessed_letters:
-                    correct+=1
-            if correct==len(await get_mot(message.guild.id)):
-                await message.channel.send('Bravo, vous avez gagné! Le mot etait bien "' + word.upper() + '" ! :tada:')
+            
+            if await get_tries(message.guild.id)>=6: #verifie si l'utilisateur a perdu
+                await message.channel.send('Vous avez perdu! Le mot etait "' + str(await get_mot(message.guild.id)).upper() + '".')
+                await add_lose(message.author.id)
                 await new_word(message.guild.id)
                 await resetTries(message.guild.id)
                 await message.channel.send('Nouveau mot (' + str(len(await get_mot(message.guild.id))) + ' lettres) : \n' + await game_status(message.guild.id))
                 return
-
-            if message.content.lower() == str(await get_mot(message.guild.id)): #verifie si l'utilisateur a gagne
-                    await message.channel.send('Bravo, vous avez gagné! Le mot etait bien "' + str(await get_mot(message.guild.id)).upper() + '" ! :tada:')
-                    await new_word(message.guild.id)
-                    await resetTries(message.guild.id)
-                    await message.channel.send('Nouveau mot (' + str(len(await get_mot(message.guild.id))) + ' lettres) : \n' + await game_status(message.guild.id))
-                    return
-            elif await get_tries(message.guild.id)>=6: #verifie si l'utilisateur a perdu
-                await message.channel.send('Vous avez perdu! Le mot etait "' + str(await get_mot(message.guild.id)).upper() + '".')
-                await new_word(message.guild.id)
-                await resetTries(message.guild.id)
-                await message.channel.send('Nouveau mot (' + str(len(word)) + ' lettres) : \n' + await game_status(message.guild.id))
-                return
+            
             else:
                 await add_tries(message.guild.id) #ajoute un essai
-                for letter in message.content.lower():
-                    if letter in await get_correct_letters(message.guild.id): #verifie que la lettre est dans le mot
-                        if letter in await get_guessed_letters(message.guild.id): #verifie que la lettre n'a pas deja ete essayee
-                            pass
-                        else: #si la lettre est correcte et n'a pas deja ete essayee
-                            await add_guessed_letters(message.guild.id, letter)
+                mot_emote=""
+                for letter in message.content: #ajoute les lettres dans mot_emote
+                    mot_emote+=":regional_indicator_"+letter.lower()+": "
+                for letter_pos in range(len(message.content)): #verifie que chaque lettre est correcte
+                    if message.content[letter_pos].lower() in str(await get_correct_letters(message.guild.id)).lower():
+                        if message.content[letter_pos].lower() == str(await get_correct_letters(message.guild.id))[letter_pos].lower():
+                            # ajoute un carré rouge a status
+                            status+=":red_square: "
+                            correct+=1
+                            if correct==len(await get_mot(message.guild.id)):
+                                await message.channel.send('Bravo, vous avez gagné! Le mot etait bien "' + str(await get_mot(message.guild.id)).upper() + '" ! :tada:')
+                                await add_win(message.author.id)
+                                await new_word(message.guild.id)
+                                await resetTries(message.guild.id)
+                                await message.channel.send('Nouveau mot (' + str(len(await get_mot(message.guild.id))) + ' lettres) : \n' + await game_status(message.guild.id))
+                                return
+                        else:
+                            # ajoute un carré jaune
+                            status+=":yellow_square: "
                     else:
-                        if letter in await get_guessed_letters(message.guild.id): 
-                            pass
-                        else: #si la lettre est incorrecte et n'a pas deja ete essayee
-                            await add_guessed_letters(message.guild.id, letter)
-                else:
-                    await message.channel.send(game_status(message.guild.id)+ '\n\n' + str(tries)+ '/6 essais.\n' + 'Lettres essayées : ' + str(await get_guessed_letters(message.guild.id)).upper() + '.')
+                        # ajoute un carré noir
+                        status+=":black_large_square: "
+                await message.channel.send(mot_emote + "\n" + status + "\n" + str(await get_tries(message.guild.id))+'/6 essais')
+
+            # else:
+            #     await add_tries(message.guild.id) #ajoute un essai
+            #     for letter in message.content.lower():
+            #         if letter in await get_correct_letters(message.guild.id): #verifie que la lettre est dans le mot
+            #             if letter in await get_guessed_letters(message.guild.id): #verifie que la lettre n'a pas deja ete essayee
+            #                 pass
+            #             else: #si la lettre est correcte et n'a pas deja ete essayee
+            #                 await add_guessed_letters(message.guild.id, letter)
+            #         else:
+            #             if letter in await get_guessed_letters(message.guild.id): 
+            #                 pass
+            #             else: #si la lettre est incorrecte et n'a pas deja ete essayee
+            #                 await add_guessed_letters(message.guild.id, letter)
+            #     else:
+            #         await message.channel.send(game_status(message.guild.id)+ '\n\n' + str(await get_tries)+ '/6 essais.\n' + 'Lettres essayées : ' + str(await get_guessed_letters(message.guild.id)).upper() + '.')
         
 
 bot.run(TOKEN) #run bot
