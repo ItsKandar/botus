@@ -252,7 +252,6 @@ mots_fr = [
 "livre",
 "Termine",
 "beaute",
-"entrainement",
 "resiste",
 "contenir",
 "avant",
