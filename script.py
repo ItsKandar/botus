@@ -149,14 +149,28 @@ async def game_status(guild_id):
     return word_status
 
 async def get_users():
+    # récupère l'ID et le pseudonyme des utilisateurs
     c.execute("SELECT user_id FROM users")
     rows = c.fetchall()
-    return rows
+    users = []
+    for row in rows:
+        user_id = row[0]
+        user = await bot.fetch_user(user_id)
+        users.append((user_id, user.name))
+    return users
+
 
 async def get_servers():
+    # récupère l'ID et le nom des serveurs
     c.execute("SELECT server_id FROM servers")
     rows = c.fetchall()
-    return rows
+    servers = []
+    for row in rows:
+        guild_id = row[0]
+        guild = await bot.fetch_guild(guild_id)
+        servers.append((guild_id, guild.name))
+    return servers
+
 
 # Récupère le préfixe du serveur
 async def get_prefix(guild_id):
@@ -297,6 +311,10 @@ async def set_prefix(ctx, prefix: str):
     await ctx.send(f"Préfixe mis à jour: {prefix}")
 
 @bot.command()
+async def invite(ctx):
+    await ctx.send("Pour inviter Botus, utilisez ce lien: https://discord.com/api/oauth2/authorize?client_id=1086344574689095741&permissions=8&scope=applications.commands%20bot")
+
+@bot.command()
 async def ping(ctx):
     latency = round(bot.latency * 1000)
     await ctx.send(f"Pong! Latence: {latency}ms")
@@ -390,7 +408,7 @@ async def classement(ctx):
     await ctx.channel.send('**CLASSEMENT GLOBAL**\n\n' + str(await get_leaderboard()))
 
 @bot.command()
-async def server(ctx):
+async def support(ctx):
     await ctx.channel.send('Voici le lien du serveur Botus! : https://discord.gg/4M6596sjZa')
     
 class CustomHelpCommand(commands.HelpCommand):
@@ -403,7 +421,7 @@ class CustomHelpCommand(commands.HelpCommand):
         if is_admin:
             embed.add_field(name="Commandes Admins", value="`set` : définir le channel de jeu\n`create` : créer le channel de jeu\n`quoifeur (on/off)` : activer/désactiver le quoifeur\n`prefix` : définir le préfixe du bot", inline=False)
 
-        embed.add_field(name="Commandes de jeu", value="`start` : commence une partie\n`fin` : finit une partie\n`mot` : affiche le mot en cours\n`bobo` : botus!\n`stats` : affiche vos statistiques\n`classement` : affiche le classement global\n`server` : affiche le lien du serveur Botus\n`bug` : signaler un bug\n`suggest` : proposer un mot\n`help` : affiche cette liste", inline=False)
+        embed.add_field(name="Commandes de jeu", value="`invite` : envoie le lien d'invitation du bot\n`ping` : renvoie la latence du bot\n`start` : commence une partie\n`fin` : finit une partie\n`mot` : affiche le mot en cours\n`bobo` : botus!\n`stats` : affiche vos statistiques\n`classement` : affiche le classement global\n`support` : affiche le lien du serveur Botus\n`bug` : signaler un bug\n`suggest` : proposer un mot\n`help` : affiche cette liste", inline=False)
 
         await ctx.send(embed=embed)
 
@@ -418,6 +436,11 @@ class MessageConverter(commands.Converter):
         else:
             return message
 
+# Envoi un message dans 1093581382581751888 quand le bot rejoint un serveur
+@bot.event
+async def on_guild_join(guild):
+    channel = bot.get_channel(1093581382581751888)
+    await channel.send(f"Botus a rejoint le serveur {guild.name} ({guild.id}), contenant {guild.member_count} membres. Lien : https://discord.gg/{guild.invite.code}")
 
 # Surveiller les messages mentionnant le bot pour la commande get_prefix
 @bot.event
@@ -440,6 +463,8 @@ async def on_command_error(ctx, error):
     if isinstance(error, commands.CommandNotFound):
         await ctx.send("Commande inconnue")
     else:
+        # send message to 1092509916238979182
+        await bot.get_channel(1092509916238979182).send(f"Une erreur est survenue : {error} dans le serveur {ctx.guild.name} (id : {ctx.guild.id}) dans le channel {ctx.channel.name} (id : {ctx.channel.id}) par {ctx.author.name} (id : {ctx.author.id}). Lien : {ctx.message.jump_url}")
         raise error
 
 # Regarde si la commande existe
@@ -477,10 +502,18 @@ async def on_message(message):
             else:
                 await message.channel.send('FI')
 
-
+    
+    await bot.process_commands(message)
     if message.author.id in DEV_ID: #admin commands :)
 
-        await bot.process_commands(message)
+        if message.content == '$adcountusers': #compte le nombre d'utilisateurs
+            await message.channel.send(f"Nombre d'utilisateurs : {len(bot.users)}")
+
+        if message.content == '$adcountservers': #compte le nombre de serveurs
+            await message.channel.send(f"Nombre de serveurs : {len(bot.guilds)}")
+
+        if message.content == '$adstats': # affiche le nombre de serveurs et d'utilisateurs
+            await message.channel.send(f"Nombre de serveurs : {len(bot.guilds)}\nNombre d'utilisateurs : {len(bot.users)}")
 
         if message.content == '$adcreate': #crée un channel #botus si il n'yen a pas encore
             guild_id = message.guild.id
@@ -532,7 +565,7 @@ async def on_message(message):
             await message.delete()
 
         if message.content[:9] == '$adstatus':
-            await bot.change_presence(activity=discord.Game(name=message.content[9:]))
+            await bot.change_presence(activity=discord.Game(name=message.content[10:]))
             await message.channel.send('Status changé!')
 
         if message.content[:12] == '$adblacklist': #blacklist quelqu'un
@@ -615,7 +648,7 @@ async def on_message(message):
             await message.channel.send(await get_servers())
 
         if message.content == '$adhelp': #envoie en DM les commandes admins
-            await message.author.send(':spy: Commandes secretes :spy:: \n\n $adblacklist : Blackliste un utilisateur \n $adunblacklist : Unblackliste un utilisateur \n $adaddwins : Ajoute une victoire a un utilisateur \n $admot : Montre le mot \n $adwin : Gagne la partie \n $adlose : Perd la partie \n $adreset : Remet le nombre d\'essais a 0 \n $adviewtries : Montre le nombre d\'essais \n $adviewguessed : Montre les lettres essayees \n $adresetguessed : Retire les lettres essayees \n $adletters : Montre les lettres correctes \n $adresetletters : Retire les lettres correctes \n $adgetusers : Montre la liste des utilisateurs \n $adgetservers : Montre la liste des serveurs \n $adhelp : Envoie en DM les commandes admins')
+            await message.author.send(':spy: Commandes secretes :spy:: \n\n$adcountusers : compte le nombre d\'users\n$adcountservers : compte le nombre de serveurs\n$adstats : affiche le nombre de serveurs et d\'utilisateurs\n $adblacklist : Blackliste un utilisateur \n $adunblacklist : Unblackliste un utilisateur \n $adaddwins : Ajoute une victoire a un utilisateur \n $admot : Montre le mot \n $adwin : Gagne la partie \n $adlose : Perd la partie \n $adreset : Remet le nombre d\'essais a 0 \n $adviewtries : Montre le nombre d\'essais \n $adviewguessed : Montre les lettres essayees \n $adresetguessed : Retire les lettres essayees \n $adletters : Montre les lettres correctes \n $adresetletters : Retire les lettres correctes \n $adgetusers : Montre la liste des utilisateurs \n $adgetservers : Montre la liste des serveurs \n $adhelp : Envoie en DM les commandes admins')
             await message.channel.send('Commandes admins secrètes envoyé en mp :ok_hand: :spy:')
 
     #verifie que le channel est bien botus

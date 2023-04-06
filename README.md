@@ -21,6 +21,7 @@ Commandes admins :
 - `quoifeur (on/off)` : active/desactive les reponses automatiques du bot quand quelqu'un dit "quoi" ou d'autres mots :)
 
 Commandes utilisateurs :
+- `invite` : Envoie le lien d'invitation du bot
 - `ping` : Pong (affiche la latence)!
 - `bobo` : Botus !
 - `start` : Commence une nouvelle partie
@@ -30,12 +31,12 @@ Commandes utilisateurs :
 - `classement` : Montre le classement des victoires
 - `suggest` : Pour suggerer une modification ou un mot
 - `bug` : Report un bug
-- `server` : Envoie le lien vers le serveur support
+- `support` : Envoie le lien vers le serveur support
 - `help` : Affiche la liste des commandes disponibles
 
 ## Comment jouer ?
 
-1. Tapez `$start` pour commencer une nouvelle partie
+1. Tapez `start` pour commencer une nouvelle partie
 2. Le bot affichera un mot à deviner avec les lettres masquées
 3. Proposez un mot directement dans le chat
 4. Le bot va renvoyer votre mot avec en dessous des carrées rouge, jaune ou noir
