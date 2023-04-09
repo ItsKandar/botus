@@ -657,16 +657,8 @@ async def on_message(message):
         if len(message.content) == len(await get_mot(message.guild.id)) and message.content.isalpha(): #verifie que le mot respecte les conditions
             status=""
             correct=0
-            
-            if await get_tries(message.guild.id)>=6: #verifie si l'utilisateur a perdu
-                await message.channel.send('Vous avez perdu! Le mot etait "' + str(await get_mot(message.guild.id)).upper() + '".')
-                await add_lose(message.author.id)
-                await new_word(message.guild.id)
-                await resetTries(message.guild.id)
-                await message.channel.send('Nouveau mot (' + str(len(await get_mot(message.guild.id))) + ' lettres) : \n' + await game_status(message.guild.id))
-                return
-            
-            else:
+           
+            if await get_tries(message.guild.id)<=6:
                 await add_tries(message.guild.id) #ajoute un essai
                 mot_emote=""
                 for letter in message.content: #ajoute les lettres dans mot_emote
@@ -692,6 +684,14 @@ async def on_message(message):
                         status+=":black_large_square: "
                 await message.channel.send(mot_emote + "\n" + status + "\n" + str(await get_tries(message.guild.id))+'/6 essais')
 
+            else:
+                await message.channel.send('Vous avez perdu! Le mot etait "' + str(await get_mot(message.guild.id)).upper() + '".')
+                await add_lose(message.author.id)
+                await new_word(message.guild.id)
+                await resetTries(message.guild.id)
+                await message.channel.send('Nouveau mot (' + str(len(await get_mot(message.guild.id))) + ' lettres) : \n' + await game_status(message.guild.id))
+                return
+            
             # else:
             #     await add_tries(message.guild.id) #ajoute un essai
             #     for letter in message.content.lower():
