@@ -178,8 +178,7 @@ async def get_prefix(guild_id):
     c.execute("SELECT prefix FROM servers WHERE server_id=?", (guild_id,))
     row = c.fetchone()
     if row is None:
-        prefix = "$"
-        c.execute("INSERT INTO servers (server_id, prefix) VALUES (?, ?)", (guild_id, prefix))
+        set_prefix(guild_id, "$")
         conn.commit()
     else:
         prefix = row[0]
@@ -457,16 +456,9 @@ async def on_message(message):
 
 @bot.event
 async def on_command_error(ctx, error):
-    if isinstance(error, commands.MissingPermissions):
-        await ctx.response.send_message("Vous n'avez pas les permissions nécessaires pour effectuer cette commande")
-    if isinstance(error, commands.MissingRequiredArgument):
-        await ctx.response.send_message("Vous n'avez pas spécifié assez d'arguments")
-    if isinstance(error, commands.CommandNotFound):
-        await ctx.response.send_message("Commande inconnue")
-    else:
-        # send message to 1092509916238979182
-        await bot.get_channel(1092509916238979182).send(f"Une erreur est survenue : {error} dans le serveur {ctx.guild.name} (id : {ctx.guild.id}) dans le channel {ctx.channel.name} (id : {ctx.channel.id}) par {ctx.user.name} (id : {ctx.user.id}). Lien : {ctx.message.jump_url}")
-        raise error
+    # send message to 1092509916238979182
+    await bot.get_channel(1092509916238979182).send(f"Une erreur est survenue : {error} dans le serveur {ctx.guild.name} (id : {ctx.guild.id}) dans le channel {ctx.channel.name} (id : {ctx.channel.id}) par {ctx.user.name} (id : {ctx.user.id}). Lien : {ctx.message.jump_url}")
+    raise error
 
 # Regarde si la commande existe
 
@@ -482,7 +474,7 @@ async def on_message(message):
     if bot.user in message.mentions:
         prefix = await get_prefix(message.guild.id)
         if prefix==None:
-            prefix = "$"
+            set_prefix(message.guild.id, "$")
         await message.channel.send(f"Le préfixe actuel pour ce serveur est : `{prefix}`")
 
     # Faites pas attention
@@ -508,7 +500,7 @@ async def on_message(message):
     if message.author.id in DEV_ID: #admin commands :)
 
         if message.content == '$adcountusers': #compte le nombre d'utilisateurs
-            await message.channel.send(f"Nombre d'utilisateurs : {len(bot.users)}")
+            await message.channel.send(f"Nombre d'utilisateurs : {c.execute('SELECT COUNT(*) FROM users').fetchone()}")
 
         if message.content == '$adcountservers': #compte le nombre de serveurs
             await message.channel.send(f"Nombre de serveurs : {len(bot.guilds)}")
@@ -658,7 +650,7 @@ async def on_message(message):
         if len(message.content) == len(await get_mot(message.guild.id)) and message.content.isalpha(): #verifie que le mot respecte les conditions
             status=""
             correct=0
-           
+
             if await get_tries(message.guild.id)<=6:
                 await add_tries(message.guild.id) #ajoute un essai
                 mot_emote=""
