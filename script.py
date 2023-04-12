@@ -1,4 +1,5 @@
 import discord
+from discord import app_commands
 from discord.ext import commands
 import sqlite3
 import random
@@ -300,132 +301,160 @@ bot = commands.Bot(command_prefix="$", intents=intents, help_command=None)
 async def on_ready():
     print('Logged in as', bot.user)
     await bot.get_channel(1092509916238979182).send("Bot démarré avec succès!")
+    try:
+        synced = await bot.tree.sync()
+        print(f"Synced {synced} commands.")
+    except Exception as e:
+        print(f"Failed to sync commands: {e}")
     await bot.change_presence(activity=discord.Game(name='Bo bo botus!'))
 
-# Detecte les messages
-@bot.command()
-async def set_prefix(ctx, prefix: str):
-    guild_id = ctx.guild.id
-    c.execute("UPDATE servers SET prefix=? WHERE server_id=?", (prefix, guild_id))
-    conn.commit()
-    await ctx.send(f"Préfixe mis à jour: {prefix}")
-
-@bot.command()
+# Commandes
+    
+@bot.tree.command(name='invite', description='Envoie le lien d\'invitation du bot')
 async def invite(ctx):
-    await ctx.send("Pour inviter Botus, utilisez ce lien: https://discord.com/api/oauth2/authorize?client_id=1086344574689095741&permissions=8&scope=applications.commands%20bot")
+    await ctx.response.send_message("Pour inviter Botus, utilisez ce lien: https://discord.com/api/oauth2/authorize?client_id=1086344574689095741&permissions=8&scope=applications.commands%20bot", ephemeral=True)
 
-@bot.command()
+@bot.tree.command(name='ping', description='Affiche la latence du bot')
 async def ping(ctx):
     latency = round(bot.latency * 1000)
-    await ctx.send(f"Pong! Latence: {latency}ms")
+    await ctx.response.send_message(f"Pong! Latence: {latency}ms")
 
-@bot.command()
+@bot.tree.command(name='start', description='Démarre une partie')
 async def start(ctx):
-    if await get_channel_id(ctx.guild.id) is None:
-        await ctx.channel.send("Veuillez définir un channel avec la commande `set`")
+    if await is_blacklisted(ctx.user.id) == True:
+        await ctx.response.send_message("Vous avez été blacklisté du bot!", ephemeral=True)
+    elif await get_channel_id(ctx.guild.id) is None:
+        await ctx.response.send_message("Veuillez définir un channel avec la commande `set`", ephemeral=True)
     elif await get_channel_id(ctx.guild.id) == ctx.channel.id:
         await new_word(ctx.guild.id)
-        await ctx.channel.send('Nouveau mot (' + str(len(await get_mot(ctx.guild.id))) + ' lettres) : \n' + await game_status(ctx.guild.id))
+        await ctx.response.send_message('Nouveau mot (' + str(len(await get_mot(ctx.guild.id))) + ' lettres) : \n' + await game_status(ctx.guild.id))
     else:
-        await ctx.channel.send('ERREUR')
-        
-@bot.command()
-async def fin(ctx):
-    if await get_channel_id(ctx.guild.id) is None:
-        await ctx.channel.send("Veuillez définir un channel avec la commande `set`")
-    elif await get_channel_id(ctx.guild.id) == ctx.channel.id:
-        await ctx.channel.send('Le mot etait "' + str(await get_mot(ctx.guild.id)).upper() + '".')
-        await new_word(ctx.guild.id)
-        await ctx.channel.send('Nouveau mot (' + str(len(await get_mot(ctx.guild.id))) + ' lettres) : \n' + await game_status(ctx.guild.id))
+        await ctx.response.send_message("Channel incorrect!", ephemeral=True)
 
-@bot.command()
-@commands.has_permissions(administrator=True)
-async def quoifeur(ctx, arg):
+@bot.tree.command(name='fin', description='Termine une partie')
+async def fin(ctx):
+    if await is_blacklisted(ctx.user.id) == True:
+        await ctx.response.send_message("Vous avez été blacklisté du bot!", ephemeral=True)
+    elif await get_channel_id(ctx.guild.id) is None:
+        await ctx.response.send_message("Veuillez définir un channel avec la commande `set`", ephemeral=True)
+    elif await get_channel_id(ctx.guild.id) == ctx.channel.id:
+        await new_word(ctx.guild.id)
+        await ctx.response.send_message('Le mot etait "' + str(await get_mot(ctx.guild.id)).upper() + '".\nNouveau mot (' + str(len(await get_mot(ctx.guild.id))) + ' lettres) : \n' + await game_status(ctx.guild.id))
+    else:
+        await ctx.response.send_message("Channel incorrect!", ephemeral=True)
+
+@bot.tree.command(name='quoifeur', description='Active/Désactive le quoifeur')
+@app_commands.checks.has_permissions(administrator=True)
+@discord.app_commands.default_permissions(administrator=True)
+async def quoifeur(ctx, arg: str):
     if arg=='on':
         quoifeur = 1
         guild_id = ctx.guild.id
         c.execute("UPDATE servers SET quoifeur=? WHERE server_id=?", (quoifeur, guild_id))
         conn.commit()
-        await ctx.channel.send('Quoifeur activé!')
+        await ctx.response.send_message('Quoifeur activé!')
     elif arg=='off':
         quoifeur = 0
         guild_id = ctx.guild.id
         c.execute("UPDATE servers SET quoifeur=? WHERE server_id=?", (quoifeur, guild_id))
         conn.commit()
-        await ctx.channel.send('Quoifeur désactivé!')
+        await ctx.response.send_message('Quoifeur désactivé!')
     else:
-        await ctx.channel.send('Argument invalide! (on/off)')
+        await ctx.response.send_message('Argument invalide! (on/off)', ephemeral=True)
 
-@bot.command()
-@commands.has_permissions(administrator=True)
+@bot.tree.command(name='set', description='Définit le channel de jeu')
+@app_commands.checks.has_permissions(administrator=True)
+@discord.app_commands.default_permissions(administrator=True)
 async def set(ctx, channel: discord.TextChannel):
     guild_id = ctx.guild.id
     channel_id = channel.id
     c.execute("UPDATE servers SET channel_id=? WHERE server_id=?", (channel_id, guild_id))
     conn.commit()
-    await ctx.send(f"Channel de jeu mis à jour: {channel}")
+    await ctx.response.send_message(f"Channel de jeu mis à jour: {channel}")
 
-@bot.command()
-@commands.has_permissions(administrator=True)
+@bot.tree.command(name='create', description='Crée le channel de jeu')
+@app_commands.checks.has_permissions(administrator=True)
+@discord.app_commands.default_permissions(administrator=True)
 async def create(ctx):
     guild = ctx.guild
     existing_channel = discord.utils.get(guild.channels, name=CHANNEL_NAME)
     if not existing_channel:
         print(f'Creation du channel {CHANNEL_NAME}')
         await guild.create_text_channel(CHANNEL_NAME)
-
-@bot.command()
-async def bug(ctx, *, arg):
-    await bot.get_channel(1090643512220983346).send("**<@&1090635527058898944>\nBUG REPORT DE " + str(ctx.message.author.display_name) + "**\n\n**LIEN DU REPORT**\n" + ctx.message.jump_url + "\n\n**MESSAGE**\n" + arg)
-    await ctx.channel.send('Le bug a été signalé, merci!')
-
-@bot.command()
-async def suggest(ctx, *, arg):
-    if arg.lower() in mots_fr:
-        await ctx.channel.send('Le mot "' + arg.upper() + '" est déjà dans la liste!')
     else:
-        await bot.get_channel(1090643533922304041).send("**<@&1090635527058898944>\nSUGGESTION DE " + str(ctx.message.author.display_name) + "**\n\n**LIEN DE LA SUGGESTION**\n" + ctx.message.jump_url + "\n\n**MESSAGE**\n" + arg)
-        await ctx.channel.send('La suggestion a été envoyée, merci!')
+        await ctx.response.send_message('Le channel existe déjà!', ephemeral=True)
 
-@bot.command()
+@bot.tree.command(name='bug', description='Signale un bug')
+async def bug(ctx, message: str):
+    await bot.get_channel(1090643512220983346).send("**<@&1090635527058898944>\nBUG REPORT DE " + str(ctx.user.display_name) + "**\n\n**LIEN DU REPORT**\n" + "a debug" + "\n\n**MESSAGE**\n" + message)
+    await ctx.response.send_message('Le bug a été signalé, merci!', ephemeral=True)
+
+@bot.tree.command(name='suggest', description='Suggère un mot ou une nouvelle fonctionnalité')
+async def suggest(ctx, message: str):
+    if message.lower() in mots_fr:
+        await ctx.response.send_message('Le mot "' + message.upper() + '" est déjà dans la liste!', ephemeral=True)
+    else:
+        await bot.get_channel(1090643533922304041).send("**<@&1090635527058898944>\nSUGGESTION DE " + str(ctx.user.display_name) + "**\n\n**LIEN DE LA SUGGESTION**\n" + "a debug" + "\n\n**MESSAGE**\n" + message)
+        await ctx.response.send_message('La suggestion a été envoyée, merci!', ephemeral=True)
+
+@bot.tree.command(name='mot', description='Affiche le mot en cours')
 async def mot(ctx):
-    status = await game_status(ctx.guild.id)
-    await ctx.channel.send(status)
-
-@bot.command()
-async def bobo(ctx):
-    await ctx.channel.send('Botus!')
-
-@bot.command()
-async def stats(ctx):
-    if await get_wins(ctx.author.id) is None:
-        await ctx.channel.send('Vous n\'avez pas encore de victoires!')
+    if await is_blacklisted(ctx.user.id) == True:
+        await ctx.response.send_message("Vous avez été blacklisté du bot!", ephemeral=True)
+    elif await get_channel_id(ctx.guild.id) is None:
+        await ctx.response.send_message("Veuillez définir un channel avec la commande `set`", ephemeral=True)
+    elif await get_channel_id(ctx.guild.id) == ctx.channel.id:
+        status = await game_status(ctx.guild.id)
+        await ctx.response.send_message(status)
     else:
-        await ctx.channel.send('Vous avez **' + str(await get_wins(ctx.author.id)) + '** victoires.')
+        await ctx.response.send_message("Channel incorrect!", ephemeral=True)
 
-@bot.command()
+@bot.tree.command(name='bobo', description='Botus!')
+async def bobo(ctx):
+    await ctx.response.send_message('Botus!', ephemeral=True)
+
+@bot.tree.command(name='stats', description='Affiche vos statistiques')
+async def stats(ctx):
+    if await is_blacklisted(ctx.user.id) == True:
+        await ctx.response.send_message("Vous avez été blacklisté du bot!", ephemeral=True)
+    elif await get_channel_id(ctx.guild.id) is None:
+        await ctx.response.send_message("Veuillez définir un channel avec la commande `set`", ephemeral=True)
+    elif await get_channel_id(ctx.guild.id) == ctx.channel.id:
+        if await get_wins(ctx.user.id) is None:
+            await ctx.response.send_message('Vous n\'avez pas encore de victoires!')
+        else:
+            await ctx.response.send_message('Vous avez **' + str(await get_wins(ctx.user.id)) + '** victoires.')
+    else:
+        await ctx.response.send_message("Channel incorrect!", ephemeral=True)
+
+@bot.tree.command(name='classement', description='Affiche le classement global')
 async def classement(ctx):
-    await ctx.channel.send('**CLASSEMENT GLOBAL**\n\n' + str(await get_leaderboard()))
+    if await is_blacklisted(ctx.user.id) == True:
+        await ctx.response.send_message("Vous avez été blacklisté du bot!", ephemeral=True)
+    elif await get_channel_id(ctx.guild.id) is None:
+        await ctx.response.send_message("Veuillez définir un channel avec la commande `set`", ephemeral=True)
+    elif await get_channel_id(ctx.guild.id) == ctx.channel.id:
+        await ctx.response.send_message('**CLASSEMENT GLOBAL**\n\n' + str(await get_leaderboard()))
+    else:
+        await ctx.response.send_message("Channel incorrect!", ephemeral=True)
 
-@bot.command()
+@bot.tree.command(name='support', description='Envoie le lien du serveur support')
 async def support(ctx):
-    await ctx.channel.send('Voici le lien du serveur Botus! : https://discord.gg/4M6596sjZa')
+    await ctx.response.send_message('Voici le lien du serveur Botus! : https://discord.gg/4M6596sjZa', ephemeral=True)
     
-class CustomHelpCommand(commands.HelpCommand):
-    async def send_bot_help(self, mapping):
-        ctx = self.context
-        is_admin = ctx.author.guild_permissions.administrator
+@bot.tree.command(name='help', description='Affiche la liste des commandes')
+async def help(ctx):
 
-        embed = discord.Embed(title="Liste des commandes !", color=discord.Color.blue())
+    is_admin = ctx.user.guild_permissions.administrator
 
-        if is_admin:
-            embed.add_field(name="Commandes Admins", value="`set` : définir le channel de jeu\n`create` : créer le channel de jeu\n`quoifeur (on/off)` : activer/désactiver le quoifeur\n`prefix` : définir le préfixe du bot", inline=False)
+    embed = discord.Embed(title="Liste des commandes !", color=discord.Color.blue())
 
-        embed.add_field(name="Commandes de jeu", value="`invite` : envoie le lien d'invitation du bot\n`ping` : renvoie la latence du bot\n`start` : commence une partie\n`fin` : finit une partie\n`mot` : affiche le mot en cours\n`bobo` : botus!\n`stats` : affiche vos statistiques\n`classement` : affiche le classement global\n`support` : affiche le lien du serveur Botus\n`bug` : signaler un bug\n`suggest` : proposer un mot\n`help` : affiche cette liste", inline=False)
+    if is_admin:
+        embed.add_field(name="Commandes Admins", value="`set` : définir le channel de jeu\n`create` : créer le channel de jeu\n`quoifeur (on/off)` : activer/désactiver le quoifeur", inline=False)
 
-        await ctx.send(embed=embed)
+    embed.add_field(name="Commandes de jeu", value="`invite` : envoie le lien d'invitation du bot\n`ping` : renvoie la latence du bot\n`start` : commence une partie\n`fin` : finit une partie\n`mot` : affiche le mot en cours\n`bobo` : botus!\n`stats` : affiche vos statistiques\n`classement` : affiche le classement global\n`support` : affiche le lien du serveur Botus\n`bug` : signaler un bug\n`suggest` : proposer un mot\n`help` : affiche cette liste", inline=False)
 
-bot.help_command = CustomHelpCommand()
+    await ctx.response.send_message(embed=embed, ephemeral=True)
 
 class MessageConverter(commands.Converter):
     async def convert(self, ctx, argument):
@@ -456,16 +485,9 @@ async def on_message(message):
 
 @bot.event
 async def on_command_error(ctx, error):
-    if isinstance(error, commands.MissingPermissions):
-        await ctx.send("Vous n'avez pas les permissions nécessaires pour effectuer cette commande")
-    if isinstance(error, commands.MissingRequiredArgument):
-        await ctx.send("Vous n'avez pas spécifié assez d'arguments")
-    if isinstance(error, commands.CommandNotFound):
-        await ctx.send("Commande inconnue")
-    else:
-        # send message to 1092509916238979182
-        await bot.get_channel(1092509916238979182).send(f"Une erreur est survenue : {error} dans le serveur {ctx.guild.name} (id : {ctx.guild.id}) dans le channel {ctx.channel.name} (id : {ctx.channel.id}) par {ctx.author.name} (id : {ctx.author.id}). Lien : {ctx.message.jump_url}")
-        raise error
+    # send message to 1092509916238979182
+    await bot.get_channel(1092509916238979182).send(f"Une erreur est survenue : {error} dans le serveur {ctx.guild.name} (id : {ctx.guild.id}) dans le channel #{ctx.channel.name} (id : {ctx.channel.id})")
+    raise error
 
 # Regarde si la commande existe
 
@@ -481,7 +503,7 @@ async def on_message(message):
     if bot.user in message.mentions:
         prefix = await get_prefix(message.guild.id)
         if prefix==None:
-            prefix = "$"
+            prefix = '$'
         await message.channel.send(f"Le préfixe actuel pour ce serveur est : `{prefix}`")
 
     # Faites pas attention
@@ -507,7 +529,7 @@ async def on_message(message):
     if message.author.id in DEV_ID: #admin commands :)
 
         if message.content == '$adcountusers': #compte le nombre d'utilisateurs
-            await message.channel.send(f"Nombre d'utilisateurs : {len(bot.users)}")
+            await message.channel.send(f"Nombre d'utilisateurs : {c.execute('SELECT COUNT(*) FROM users').fetchone()}")
 
         if message.content == '$adcountservers': #compte le nombre de serveurs
             await message.channel.send(f"Nombre de serveurs : {len(bot.guilds)}")
@@ -657,56 +679,38 @@ async def on_message(message):
         if len(message.content) == len(await get_mot(message.guild.id)) and message.content.isalpha(): #verifie que le mot respecte les conditions
             status=""
             correct=0
-           
-            if await get_tries(message.guild.id)<=6:
-                await add_tries(message.guild.id) #ajoute un essai
-                mot_emote=""
-                for letter in message.content: #ajoute les lettres dans mot_emote
-                    mot_emote+=":regional_indicator_"+letter.lower()+": "
-                for letter_pos in range(len(message.content)): #verifie que chaque lettre est correcte
-                    if message.content[letter_pos].lower() in str(await get_correct_letters(message.guild.id)).lower():
-                        if message.content[letter_pos].lower() == str(await get_correct_letters(message.guild.id))[letter_pos].lower():
-                            # ajoute un carré rouge a status
-                            status+=":red_square: "
-                            correct+=1
-                            if correct==len(await get_mot(message.guild.id)):
-                                await message.channel.send('Bravo, vous avez gagné! Le mot etait bien "' + str(await get_mot(message.guild.id)).upper() + '" ! :tada:')
-                                await add_win(message.author.id)
-                                await new_word(message.guild.id)
-                                await resetTries(message.guild.id)
-                                await message.channel.send('Nouveau mot (' + str(len(await get_mot(message.guild.id))) + ' lettres) : \n' + await game_status(message.guild.id))
-                                return
-                        else:
-                            # ajoute un carré jaune
-                            status+=":yellow_square: "
-                    else:
-                        # ajoute un carré noir
-                        status+=":black_large_square: "
-                await message.channel.send(mot_emote + "\n" + status + "\n" + str(await get_tries(message.guild.id))+'/6 essais')
 
-            else:
+            await add_tries(message.guild.id) #ajoute un essai
+            mot_emote=""
+            for letter in message.content: #ajoute les lettres dans mot_emote
+                mot_emote+=":regional_indicator_"+letter.lower()+": "
+            for letter_pos in range(len(message.content)): #verifie que chaque lettre est correcte
+                if message.content[letter_pos].lower() in str(await get_correct_letters(message.guild.id)).lower():
+                    if message.content[letter_pos].lower() == str(await get_correct_letters(message.guild.id))[letter_pos].lower():
+                        # ajoute un carré rouge a status
+                        status+=":red_square: "
+                        correct+=1
+                        if correct==len(await get_mot(message.guild.id)):
+                            await message.channel.send('Bravo, vous avez gagné! Le mot etait bien "' + str(await get_mot(message.guild.id)).upper() + '" ! :tada:')
+                            await add_win(message.author.id)
+                            await new_word(message.guild.id)
+                            await resetTries(message.guild.id)
+                            await message.channel.send('Nouveau mot (' + str(len(await get_mot(message.guild.id))) + ' lettres) : \n' + await game_status(message.guild.id))
+                            return
+                    else:
+                        # ajoute un carré jaune
+                        status+=":yellow_square: "
+                else:
+                    # ajoute un carré noir
+                    status+=":black_large_square: "
+            if await get_tries(message.guild.id)>6:
                 await message.channel.send('Vous avez perdu! Le mot etait "' + str(await get_mot(message.guild.id)).upper() + '".')
                 await add_lose(message.author.id)
                 await new_word(message.guild.id)
                 await resetTries(message.guild.id)
                 await message.channel.send('Nouveau mot (' + str(len(await get_mot(message.guild.id))) + ' lettres) : \n' + await game_status(message.guild.id))
                 return
-            
-            # else:
-            #     await add_tries(message.guild.id) #ajoute un essai
-            #     for letter in message.content.lower():
-            #         if letter in await get_correct_letters(message.guild.id): #verifie que la lettre est dans le mot
-            #             if letter in await get_guessed_letters(message.guild.id): #verifie que la lettre n'a pas deja ete essayee
-            #                 pass
-            #             else: #si la lettre est correcte et n'a pas deja ete essayee
-            #                 await add_guessed_letters(message.guild.id, letter)
-            #         else:
-            #             if letter in await get_guessed_letters(message.guild.id): 
-            #                 pass
-            #             else: #si la lettre est incorrecte et n'a pas deja ete essayee
-            #                 await add_guessed_letters(message.guild.id, letter)
-            #     else:
-            #         await message.channel.send(game_status(message.guild.id)+ '\n\n' + str(await get_tries)+ '/6 essais.\n' + 'Lettres essayées : ' + str(await get_guessed_letters(message.guild.id)).upper() + '.')
-        
+            else:
+                await message.channel.send(mot_emote + "\n" + status + "\n" + str(await get_tries(message.guild.id))+'/6 essais')
 
 bot.run(TOKEN) #run bot
