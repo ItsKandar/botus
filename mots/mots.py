@@ -704,5 +704,10 @@ mots_fr = [
 "minuit",
 "perdre",
 "piege",
-"mange"
+"mange",
+"flamands",
+"flandre",
+"artisant",
+"jambon",
+"Canoe"
 ]
