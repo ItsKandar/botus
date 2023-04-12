@@ -17,7 +17,6 @@ Voici la liste des commandes disponibles (**Attention, vous devez d'abord defini
 Commandes admins :
 - `set` : defini le channel dans lequels le bot sera utilisable
 - `create` : crée un channel "botus"
-- `prefix` : change le prefix du bot
 - `quoifeur (on/off)` : active/desactive les reponses automatiques du bot quand quelqu'un dit "quoi" ou d'autres mots :)
 
 Commandes utilisateurs :
