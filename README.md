@@ -8,7 +8,7 @@ Pour inviter le bot [cliquez ici!](https://discord.com/api/oauth2/authorize?clie
 
 ## Serveur support
 
-Rejoignez le serveur Discord pour obtenir de l'aide, poser des questions ou proposer des améliorations : [https://discord.gg/hjM44ycV](https://discord.gg/hjM44ycV)
+Rejoignez le serveur Discord pour obtenir de l'aide, poser des questions ou proposer des améliorations : [https://discord.gg/4M6596sjZa](https://discord.gg/4M6596sjZa)
 
 ## Commandes disponibles
 
@@ -46,6 +46,6 @@ Commandes utilisateurs :
 
 **NOIR** siginifie que la lettre n'est pas dans le mot
 
-5. Vous avez 6 essais, si vous trouvez le mot, le jeu se termine et vous gagnez. Sinon, continuez à proposer des mots jusqu'à ce que vous le trouviez ou que vous décidiez d'arrêter la partie en tapant `$fin`!
+5. Vous avez 6 essais, si vous trouvez le mot, le jeu se termine et vous gagnez. Sinon, continuez à proposer des mots jusqu'à ce que vous le trouviez ou que vous décidiez d'arrêter la partie en tapant `fin`!
 
 Amusez-vous bien et bonne chance !
