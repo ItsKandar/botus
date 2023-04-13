@@ -143,9 +143,10 @@ async def get_leaderboard():
 async def game_status(guild_id):
     word = await get_mot(guild_id)
     word_status = ''
-    for letter in word.lower():
-        if letter in await get_guessed_letters(guild_id):
-            word_status += ' :regional_indicator_' + letter.lower() + ': '
+    word_status += ' :regional_indicator_' + word[0].lower() + ': '  # affiche la première lettre du mot
+    for pos in range(1,len(word)):
+        if word[pos] in await get_guessed_letters(guild_id):
+            word_status += ' :regional_indicator_' + word[pos].lower() + ': '
         else:
             word_status += ' :black_large_square: '
     return word_status
@@ -680,7 +681,7 @@ async def on_message(message):
     #verifie que le channel est bien botus
     if message.channel.id == await get_channel_id(message.guild.id) and message.content.lower() in dico_fr:
 
-        if len(message.content) == len(await get_mot(message.guild.id)) and message.content.isalpha(): #verifie que le mot respecte les conditions
+        if len(message.content) == len(await get_mot(message.guild.id)) and message.content.isalpha() and message.content.lower()[0] == str(await get_mot(message.guild.id))[0].lower(): #verifie que le mot respecte les conditions
             status=""
             correct=0
 
