@@ -3,6 +3,7 @@ from discord import app_commands
 from discord.ext import commands
 import sqlite3
 import random
+import requests
 from mots.mots import mots_fr
 from mots.dico import dico_fr
 from config import RE_TOKEN, DEV_ID, DEV_TOKEN, DEVMODE
@@ -142,9 +143,10 @@ async def get_leaderboard():
 async def game_status(guild_id):
     word = await get_mot(guild_id)
     word_status = ''
-    for letter in word.lower():
-        if letter in await get_guessed_letters(guild_id):
-            word_status += ' :regional_indicator_' + letter.lower() + ': '
+    word_status += ' :regional_indicator_' + word[0].lower() + ': '  # affiche la première lettre du mot
+    for pos in range(1,len(word)):
+        if word[pos] in await get_guessed_letters(guild_id):
+            word_status += ' :regional_indicator_' + word[pos].lower() + ': '
         else:
             word_status += ' :black_large_square: '
     return word_status
@@ -534,6 +536,9 @@ async def on_message(message):
         if message.content == '$adcountservers': #compte le nombre de serveurs
             await message.channel.send(f"Nombre de serveurs : {len(bot.guilds)}")
 
+        if message.content == '$advotes': # recupere les votes en appelant https://discordbotlist.com/api/v1/bots/1086344574689095741/upvotes
+            await message.channel.send(f"Nombre de votes sur dbl : {len(requests.get('https://discordbotlist.com/api/v1/bots/1086344574689095741/upvotes').json())}")
+        
         if message.content == '$adstats': # affiche le nombre de serveurs et d'utilisateurs
             await message.channel.send(f"Nombre de serveurs : {len(bot.guilds)}\nNombre d'utilisateurs : {len(bot.users)}")
 
@@ -676,7 +681,7 @@ async def on_message(message):
     #verifie que le channel est bien botus
     if message.channel.id == await get_channel_id(message.guild.id) and message.content.lower() in dico_fr:
 
-        if len(message.content) == len(await get_mot(message.guild.id)) and message.content.isalpha(): #verifie que le mot respecte les conditions
+        if len(message.content) == len(await get_mot(message.guild.id)) and message.content.isalpha() and message.content.lower()[0] == str(await get_mot(message.guild.id))[0].lower(): #verifie que le mot respecte les conditions
             status=""
             correct=0
 
