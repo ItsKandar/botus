@@ -35,7 +35,7 @@ Commandes utilisateurs :
 
 ## Comment jouer ?
 
-1. Tapez `start` pour commencer une nouvelle partie
+1. Utilisez `start` pour commencer une nouvelle partie
 2. Le bot affichera un mot à deviner avec les lettres masquées
 3. Proposez un mot directement dans le chat
 4. Le bot va renvoyer votre mot avec en dessous des carrées rouge, jaune ou noir
@@ -46,6 +46,6 @@ Commandes utilisateurs :
 
 **NOIR** siginifie que la lettre n'est pas dans le mot
 
-5. Vous avez 6 essais, si vous trouvez le mot, le jeu se termine et vous gagnez. Sinon, continuez à proposer des mots jusqu'à ce que vous le trouviez ou que vous décidiez d'arrêter la partie en tapant `fin`!
+5. Vous avez 6 essais, si vous trouvez le mot, le jeu se termine et vous gagnez. Sinon, continuez à proposer des mots jusqu'à ce que vous le trouviez ou que vous décidiez d'arrêter la partie en utilisant `fin`!
 
 Amusez-vous bien et bonne chance !
