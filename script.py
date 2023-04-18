@@ -88,10 +88,12 @@ async def get_wins(user_id):
     c.execute("SELECT wins FROM users WHERE user_id=?", (user_id,))
     row = c.fetchone()
     if row is None:
-        return 0  # renvoie une valeur par défaut de 0 si aucune ligne ne correspond à l'utilisateur spécifié
+        wins = 0
+        c.execute("INSERT INTO users (user_id, wins) VALUES (?, ?)", (user_id, wins))
+        conn.commit()
     else:
         wins = row[0]
-        return wins
+    return wins
     
 async def reset_wins(user_id):
     c.execute("UPDATE users SET wins=0 WHERE user_id=?", (user_id,))
@@ -109,16 +111,9 @@ async def get_loses(user_id):
     return loses
 
 async def add_win(user_id):
-    wins = await get_wins(user_id)
-    if wins is not None:
-        c.execute("UPDATE users SET wins=wins+1 WHERE user_id=?", (user_id,))
-        conn.commit()
-    else:
-        try:
-            c.execute("INSERT INTO users (user_id, wins) VALUES (?, ?)", (user_id, 1))
-            conn.commit()
-        except sqlite3.IntegrityError:
-            pass
+    await get_wins(user_id)
+    c.execute("UPDATE users SET wins=wins+1 WHERE user_id=?", (user_id,))
+    conn.commit()
 
 async def add_lose(user_id):
     await get_loses(user_id)
@@ -349,20 +344,15 @@ async def fin(ctx):
 @app_commands.checks.has_permissions(administrator=True)
 @discord.app_commands.default_permissions(administrator=True)
 async def quoifeur(ctx, arg: str):
-    if arg=='on':
-        quoifeur = 1
-        guild_id = ctx.guild.id
-        c.execute("UPDATE servers SET quoifeur=? WHERE server_id=?", (quoifeur, guild_id))
-        conn.commit()
-        await ctx.response.send_message('Quoifeur activé!')
-    elif arg=='off':
-        quoifeur = 0
-        guild_id = ctx.guild.id
-        c.execute("UPDATE servers SET quoifeur=? WHERE server_id=?", (quoifeur, guild_id))
-        conn.commit()
-        await ctx.response.send_message('Quoifeur désactivé!')
-    else:
+    valid_args = {'on': 1, 'off': 0}
+    if arg not in valid_args:
         await ctx.response.send_message('Argument invalide! (on/off)', ephemeral=True)
+        return
+    quoifeur = valid_args[arg]
+    guild_id = ctx.guild.id
+    c.execute("UPDATE servers SET quoifeur=? WHERE server_id=?", (quoifeur, guild_id))
+    conn.commit()
+    await ctx.response.send_message(f"Quoifeur {'activé' if quoifeur else 'désactivé'}!")
 
 @bot.tree.command(name='set', description='Définit le channel de jeu')
 @app_commands.checks.has_permissions(administrator=True)
@@ -696,7 +686,7 @@ async def on_message(message):
                         status+=":red_square: "
                         correct+=1
                         if correct==len(await get_mot(message.guild.id)):
-                            await message.channel.send('Bravo, vous avez gagné! Le mot etait bien "' + str(await get_mot(message.guild.id)).upper() + '" ! :tada:')
+                            await message.channel.send('Bravo <@'+ str(message.author.id) +'>, vous avez gagné! Le mot etait bien "' + str(await get_mot(message.guild.id)).upper() + '" ! :tada:')
                             await add_win(message.author.id)
                             await new_word(message.guild.id)
                             await resetTries(message.guild.id)
