@@ -500,7 +500,7 @@ async def on_message(message):
 
     # Faites pas attention
     if await get_quoifeur(message.guild.id) == 1:
-        if 'quoi' in message.content.lower() or 'cwa' in message.content.lower() or 'kwa' in message.content.lower() or 'qwa' in message.content.lower() or 'koi' in message.content.lower() or 'koa' in message.content.lower():
+        if 'quoi' in message.content.lower() or 'cwa' in message.content.lower() or 'kwa' in message.content.lower() or 'qwa' in message.content.lower() or 'koi' in message.content.lower() or 'koa' in message.content.lower() or 'quouwa' in message.content.lower() or 'quoua' in message.content.lower():
             roll = random.randint(0, 10)
             if roll <= 0.69:
                 await message.channel.send('COUBAKA :star2:')
@@ -515,6 +515,15 @@ async def on_message(message):
                 await message.channel.send('STITI :star2:')
             else:
                 await message.channel.send('FI')
+        
+        if 'ok' in message.content.lower():
+            roll = random.randint(0, 10)
+            if roll > 3:
+                await message.channel.send('BOOMER :slight_smile:')
+            elif roll <= 3:
+                await message.channel.send('Le reuf')
+            elif roll < 1:
+                await message.channel.send('Maintenant on peut avancer, comme un bateau à vapeur sur le Mississippi ! :motorboat:')
 
     
     await bot.process_commands(message)
