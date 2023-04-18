@@ -6,13 +6,7 @@ import random
 import requests
 from mots.mots import mots_fr
 from mots.dico import dico_fr
-#from config import RE_TOKEN, DEV_ID, DEV_TOKEN, DEVMODE
-
-RE_TOKEN = 'MTA4NjM0NDU3NDY4OTA5NTc0MQ.GGuH3B.Y2z7tMeIMsHsQL2dQ3OwTUblBt2N0tMz888j3g'
-DEV_TOKEN = 'MTA5MDcwMzA0NzUxODMyNjc5NQ.GxVAk5.JnE_APOPYkIcmo4VTCF9EoGbxLFvu3Wwk7MC_o'
-BLACKLIST = []
-DEV_ID = [482880124442640384, 227735537065132032, 200628777439592450, 426007534961164289]
-DEVMODE = True
+from config import RE_TOKEN, DEV_ID, DEV_TOKEN, DEVMODE
 
 # Créer ou ouvrir la base de données SQLite
 conn = sqlite3.connect("botus.db")
