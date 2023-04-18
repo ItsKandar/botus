@@ -6,7 +6,13 @@ import random
 import requests
 from mots.mots import mots_fr
 from mots.dico import dico_fr
-from config import RE_TOKEN, DEV_ID, DEV_TOKEN, DEVMODE
+#from config import RE_TOKEN, DEV_ID, DEV_TOKEN, DEVMODE
+
+RE_TOKEN = 'MTA4NjM0NDU3NDY4OTA5NTc0MQ.GGuH3B.Y2z7tMeIMsHsQL2dQ3OwTUblBt2N0tMz888j3g'
+DEV_TOKEN = 'MTA5MDcwMzA0NzUxODMyNjc5NQ.GxVAk5.JnE_APOPYkIcmo4VTCF9EoGbxLFvu3Wwk7MC_o'
+BLACKLIST = []
+DEV_ID = [482880124442640384, 227735537065132032, 200628777439592450, 426007534961164289]
+DEVMODE = True
 
 # Créer ou ouvrir la base de données SQLite
 conn = sqlite3.connect("botus.db")
@@ -344,20 +350,15 @@ async def fin(ctx):
 @app_commands.checks.has_permissions(administrator=True)
 @discord.app_commands.default_permissions(administrator=True)
 async def quoifeur(ctx, arg: str):
-    if arg=='on':
-        quoifeur = 1
-        guild_id = ctx.guild.id
-        c.execute("UPDATE servers SET quoifeur=? WHERE server_id=?", (quoifeur, guild_id))
-        conn.commit()
-        await ctx.response.send_message('Quoifeur activé!')
-    elif arg=='off':
-        quoifeur = 0
-        guild_id = ctx.guild.id
-        c.execute("UPDATE servers SET quoifeur=? WHERE server_id=?", (quoifeur, guild_id))
-        conn.commit()
-        await ctx.response.send_message('Quoifeur désactivé!')
-    else:
+    valid_args = {'on': 1, 'off': 0}
+    if arg not in valid_args:
         await ctx.response.send_message('Argument invalide! (on/off)', ephemeral=True)
+        return
+    quoifeur = valid_args[arg]
+    guild_id = ctx.guild.id
+    c.execute("UPDATE servers SET quoifeur=? WHERE server_id=?", (quoifeur, guild_id))
+    conn.commit()
+    await ctx.response.send_message(f"Quoifeur {'activé' if quoifeur else 'désactivé'}!")
 
 @bot.tree.command(name='set', description='Définit le channel de jeu')
 @app_commands.checks.has_permissions(administrator=True)
