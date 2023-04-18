@@ -2,3 +2,4 @@ config.py
 __pycache__/
 botus.db
 sql.py
+mots/__pycache__/
