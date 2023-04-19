@@ -318,7 +318,7 @@ async def ping(ctx):
 
 @bot.tree.command(name='start', description='Démarre une partie')
 async def start(ctx):
-    if await is_blacklisted(ctx.user.id) == True:
+    if await is_blacklisted(ctx.user.id) is True:
         await ctx.response.send_message("Vous avez été blacklisté du bot!", ephemeral=True)
     elif await get_channel_id(ctx.guild.id) is None:
         await ctx.response.send_message("Veuillez définir un channel avec la commande `set`", ephemeral=True)
@@ -330,7 +330,7 @@ async def start(ctx):
 
 @bot.tree.command(name='fin', description='Termine une partie')
 async def fin(ctx):
-    if await is_blacklisted(ctx.user.id) == True:
+    if await is_blacklisted(ctx.user.id) is True:
         await ctx.response.send_message("Vous avez été blacklisté du bot!", ephemeral=True)
     elif await get_channel_id(ctx.guild.id) is None:
         await ctx.response.send_message("Veuillez définir un channel avec la commande `set`", ephemeral=True)
@@ -391,7 +391,7 @@ async def suggest(ctx, message: str):
 
 @bot.tree.command(name='mot', description='Affiche le mot en cours')
 async def mot(ctx):
-    if await is_blacklisted(ctx.user.id) == True:
+    if await is_blacklisted(ctx.user.id) is True:
         await ctx.response.send_message("Vous avez été blacklisté du bot!", ephemeral=True)
     elif await get_channel_id(ctx.guild.id) is None:
         await ctx.response.send_message("Veuillez définir un channel avec la commande `set`", ephemeral=True)
@@ -407,7 +407,7 @@ async def bobo(ctx):
 
 @bot.tree.command(name='stats', description='Affiche vos statistiques')
 async def stats(ctx):
-    if await is_blacklisted(ctx.user.id) == True:
+    if await is_blacklisted(ctx.user.id) is True:
         await ctx.response.send_message("Vous avez été blacklisté du bot!", ephemeral=True)
     elif await get_channel_id(ctx.guild.id) is None:
         await ctx.response.send_message("Veuillez définir un channel avec la commande `set`", ephemeral=True)
@@ -421,7 +421,7 @@ async def stats(ctx):
 
 @bot.tree.command(name='classement', description='Affiche le classement global')
 async def classement(ctx):
-    if await is_blacklisted(ctx.user.id) == True:
+    if await is_blacklisted(ctx.user.id) is True:
         await ctx.response.send_message("Vous avez été blacklisté du bot!", ephemeral=True)
     elif await get_channel_id(ctx.guild.id) is None:
         await ctx.response.send_message("Veuillez définir un channel avec la commande `set`", ephemeral=True)
@@ -494,7 +494,7 @@ async def on_message(message):
 
     if bot.user in message.mentions:
         prefix = await get_prefix(message.guild.id)
-        if prefix==None:
+        if prefix is None:
             prefix = '$'
         await message.channel.send(f"Le préfixe actuel pour ce serveur est : `{prefix}`")
 
@@ -599,7 +599,7 @@ async def on_message(message):
             if await is_blacklisted(user_id) == False:
                 await blacklist(user_id)
                 await message.channel.send('Utilisateur blacklisté!')
-            elif await is_blacklisted(user_id) == True:
+            elif await is_blacklisted(user_id) is True:
                 await message.channel.send('Cet utilisateur est déjà blacklisté!')
             else:
                 await message.channel.send('Une erreur est survenue!')
