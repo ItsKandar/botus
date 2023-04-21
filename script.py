@@ -32,6 +32,9 @@ if not column_exists(c, "servers", "channel_id"):
 if not column_exists(c, "servers", "quoifeur"):
     c.execute("ALTER TABLE servers ADD COLUMN quoifeur INTEGER")
 
+if not column_exists(c, "servers", "parties"):
+    c.execute("ALTER TABLE servers ADD COLUMN parties INTEGER")
+
 if not column_exists(c, "servers", "mot"):
     c.execute("ALTER TABLE servers ADD COLUMN mot TEXT")
 
@@ -82,7 +85,24 @@ async def new_word(guild_id):
     await reset_guessed_letters(guild_id)
     await resetTries(guild_id)
     await add_mot(guild_id, word)
+    await add_partie(guild_id)
     return word
+
+async def get_parties(guild_id):
+    c.execute("SELECT parties FROM servers WHERE server_id=?", (guild_id,))
+    row = c.fetchone()
+    if row is None:
+        parties = 0
+        c.execute("INSERT INTO servers (server_id, parties) VALUES (?, ?)", (guild_id, parties))
+        conn.commit()
+    else:
+        parties = row[0]
+    return parties
+
+async def add_partie(guild_id):
+    await get_parties(guild_id)
+    c.execute("UPDATE servers SET parties=parties+1 WHERE server_id=?", (guild_id,))
+    conn.commit()
 
 async def get_wins(user_id):
     c.execute("SELECT wins FROM users WHERE user_id=?", (user_id,))
@@ -535,11 +555,14 @@ async def on_message(message):
         if message.content == '$adcountservers': #compte le nombre de serveurs
             await message.channel.send(f"Nombre de serveurs : {len(bot.guilds)}")
 
+        if message.content == '$adcountgames': #compte le nombre de parties
+            await message.channel.send(f"Nombre de parties : {c.execute('SELECT COUNT(*) FROM parties').fetchone()}")
+
         if message.content == '$advotes': # recupere les votes en appelant https://discordbotlist.com/api/v1/bots/1086344574689095741/upvotes
             await message.channel.send(f"Nombre de votes sur dbl : {len(requests.get('https://discordbotlist.com/api/v1/bots/1086344574689095741/upvotes').json())}")
         
         if message.content == '$adstats': # affiche le nombre de serveurs et d'utilisateurs
-            await message.channel.send(f"Nombre de serveurs : {len(bot.guilds)}\nNombre d'utilisateurs : {len(bot.users)}")
+            await message.channel.send(f"Nombre de serveurs : {len(bot.guilds)}\nNombre d'utilisateurs : {len(bot.users)}\nNombres de parties totales : {c.execute('SELECT COUNT(*) FROM games').fetchone()[0]}")
 
         if message.content == '$adcreate': #crée un channel #botus si il n'yen a pas encore
             guild_id = message.guild.id
