@@ -131,12 +131,12 @@ async def get_loses(user_id):
     return loses
 
 async def add_win(user_id):
-    await get_wins(user_id)
+    wins = await get_wins(user_id)
     c.execute("UPDATE users SET wins=wins+1 WHERE user_id=?", (user_id,))
     conn.commit()
 
 async def add_lose(user_id):
-    await get_loses(user_id)
+    loses = await get_loses(user_id)
     c.execute("UPDATE users SET loses=loses+1 WHERE user_id=?", (user_id,))
     conn.commit()
 
@@ -536,7 +536,7 @@ async def on_message(message):
             else:
                 await message.channel.send('FI')
         
-        if 'ok' in message.content.lower():
+        if 'ok' in message.content.lower() or 'okay' in message.content.lower():
             roll = random.randint(0, 10)
             if roll > 3:
                 await message.channel.send('BOOMER :slight_smile:')
