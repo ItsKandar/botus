@@ -355,8 +355,9 @@ async def fin(ctx):
     elif await get_channel_id(ctx.guild.id) is None:
         await ctx.response.send_message("Veuillez définir un channel avec la commande `set`", ephemeral=True)
     elif await get_channel_id(ctx.guild.id) == ctx.channel.id:
+        mot = str(await get_mot(ctx.guild.id)).upper()
         await new_word(ctx.guild.id)
-        await ctx.response.send_message('Le mot etait "' + str(await get_mot(ctx.guild.id)).upper() + '".\nNouveau mot (' + str(len(await get_mot(ctx.guild.id))) + ' lettres) : \n' + await game_status(ctx.guild.id))
+        await ctx.response.send_message('Le mot etait "' + mot + '".\nNouveau mot (' + str(len(await get_mot(ctx.guild.id))) + ' lettres) : \n' + await game_status(ctx.guild.id))
     else:
         await ctx.response.send_message("Channel incorrect!", ephemeral=True)
 
