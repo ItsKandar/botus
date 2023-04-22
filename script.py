@@ -32,6 +32,9 @@ if not column_exists(c, "servers", "channel_id"):
 if not column_exists(c, "servers", "quoifeur"):
     c.execute("ALTER TABLE servers ADD COLUMN quoifeur INTEGER")
 
+if not column_exists(c, "servers", "parties"):
+    c.execute("ALTER TABLE servers ADD COLUMN parties INTEGER")
+
 if not column_exists(c, "servers", "mot"):
     c.execute("ALTER TABLE servers ADD COLUMN mot TEXT")
 
@@ -82,7 +85,24 @@ async def new_word(guild_id):
     await reset_guessed_letters(guild_id)
     await resetTries(guild_id)
     await add_mot(guild_id, word)
+    await add_partie(guild_id)
     return word
+
+async def get_parties(guild_id):
+    c.execute("SELECT parties FROM servers WHERE server_id=?", (guild_id,))
+    row = c.fetchone()
+    if row is None:
+        parties = 0
+        c.execute("INSERT INTO servers (server_id, parties) VALUES (?, ?)", (guild_id, parties))
+        conn.commit()
+    else:
+        parties = row[0]
+    return parties
+
+async def add_partie(guild_id):
+    await get_parties(guild_id)
+    c.execute("UPDATE servers SET parties=parties+1 WHERE server_id=?", (guild_id,))
+    conn.commit()
 
 async def get_wins(user_id):
     c.execute("SELECT wins FROM users WHERE user_id=?", (user_id,))
@@ -111,12 +131,12 @@ async def get_loses(user_id):
     return loses
 
 async def add_win(user_id):
-    await get_wins(user_id)
+    wins = await get_wins(user_id)
     c.execute("UPDATE users SET wins=wins+1 WHERE user_id=?", (user_id,))
     conn.commit()
 
 async def add_lose(user_id):
-    await get_loses(user_id)
+    loses = await get_loses(user_id)
     c.execute("UPDATE users SET loses=loses+1 WHERE user_id=?", (user_id,))
     conn.commit()
 
@@ -318,7 +338,7 @@ async def ping(ctx):
 
 @bot.tree.command(name='start', description='Démarre une partie')
 async def start(ctx):
-    if await is_blacklisted(ctx.user.id) == True:
+    if await is_blacklisted(ctx.user.id) is True:
         await ctx.response.send_message("Vous avez été blacklisté du bot!", ephemeral=True)
     elif await get_channel_id(ctx.guild.id) is None:
         await ctx.response.send_message("Veuillez définir un channel avec la commande `set`", ephemeral=True)
@@ -330,13 +350,14 @@ async def start(ctx):
 
 @bot.tree.command(name='fin', description='Termine une partie')
 async def fin(ctx):
-    if await is_blacklisted(ctx.user.id) == True:
+    if await is_blacklisted(ctx.user.id) is True:
         await ctx.response.send_message("Vous avez été blacklisté du bot!", ephemeral=True)
     elif await get_channel_id(ctx.guild.id) is None:
         await ctx.response.send_message("Veuillez définir un channel avec la commande `set`", ephemeral=True)
     elif await get_channel_id(ctx.guild.id) == ctx.channel.id:
+        mot = str(await get_mot(ctx.guild.id)).upper()
         await new_word(ctx.guild.id)
-        await ctx.response.send_message('Le mot etait "' + str(await get_mot(ctx.guild.id)).upper() + '".\nNouveau mot (' + str(len(await get_mot(ctx.guild.id))) + ' lettres) : \n' + await game_status(ctx.guild.id))
+        await ctx.response.send_message('Le mot etait "' + mot + '".\nNouveau mot (' + str(len(await get_mot(ctx.guild.id))) + ' lettres) : \n' + await game_status(ctx.guild.id))
     else:
         await ctx.response.send_message("Channel incorrect!", ephemeral=True)
 
@@ -391,7 +412,7 @@ async def suggest(ctx, message: str):
 
 @bot.tree.command(name='mot', description='Affiche le mot en cours')
 async def mot(ctx):
-    if await is_blacklisted(ctx.user.id) == True:
+    if await is_blacklisted(ctx.user.id) is True:
         await ctx.response.send_message("Vous avez été blacklisté du bot!", ephemeral=True)
     elif await get_channel_id(ctx.guild.id) is None:
         await ctx.response.send_message("Veuillez définir un channel avec la commande `set`", ephemeral=True)
@@ -407,7 +428,7 @@ async def bobo(ctx):
 
 @bot.tree.command(name='stats', description='Affiche vos statistiques')
 async def stats(ctx):
-    if await is_blacklisted(ctx.user.id) == True:
+    if await is_blacklisted(ctx.user.id) is True:
         await ctx.response.send_message("Vous avez été blacklisté du bot!", ephemeral=True)
     elif await get_channel_id(ctx.guild.id) is None:
         await ctx.response.send_message("Veuillez définir un channel avec la commande `set`", ephemeral=True)
@@ -421,7 +442,7 @@ async def stats(ctx):
 
 @bot.tree.command(name='classement', description='Affiche le classement global')
 async def classement(ctx):
-    if await is_blacklisted(ctx.user.id) == True:
+    if await is_blacklisted(ctx.user.id) is True:
         await ctx.response.send_message("Vous avez été blacklisté du bot!", ephemeral=True)
     elif await get_channel_id(ctx.guild.id) is None:
         await ctx.response.send_message("Veuillez définir un channel avec la commande `set`", ephemeral=True)
@@ -494,13 +515,13 @@ async def on_message(message):
 
     if bot.user in message.mentions:
         prefix = await get_prefix(message.guild.id)
-        if prefix==None:
+        if prefix is None:
             prefix = '$'
         await message.channel.send(f"Le préfixe actuel pour ce serveur est : `{prefix}`")
 
     # Faites pas attention
     if await get_quoifeur(message.guild.id) == 1:
-        if 'quoi' in message.content.lower() or 'cwa' in message.content.lower() or 'kwa' in message.content.lower() or 'qwa' in message.content.lower() or 'koi' in message.content.lower() or 'koa' in message.content.lower():
+        if 'quoi' in message.content.lower() or 'cwa' in message.content.lower() or 'kwa' in message.content.lower() or 'qwa' in message.content.lower() or 'koi' in message.content.lower() or 'koa' in message.content.lower() or 'quouwa' in message.content.lower() or 'quoua' in message.content.lower():
             roll = random.randint(0, 10)
             if roll <= 0.69:
                 await message.channel.send('COUBAKA :star2:')
@@ -515,6 +536,15 @@ async def on_message(message):
                 await message.channel.send('STITI :star2:')
             else:
                 await message.channel.send('FI')
+        
+        if 'ok' in message.content.lower() or 'okay' in message.content.lower():
+            roll = random.randint(0, 10)
+            if roll > 3:
+                await message.channel.send('BOOMER :slight_smile:')
+            elif roll <= 3:
+                await message.channel.send('Le reuf')
+            elif roll < 1:
+                await message.channel.send('Maintenant on peut avancer, comme un bateau à vapeur sur le Mississippi ! :motorboat:')
 
     
     await bot.process_commands(message)
@@ -526,11 +556,14 @@ async def on_message(message):
         if message.content == '$adcountservers': #compte le nombre de serveurs
             await message.channel.send(f"Nombre de serveurs : {len(bot.guilds)}")
 
+        if message.content == '$adcountgames': #compte le nombre de parties
+            await message.channel.send(f"Nombre de parties : {c.execute('SELECT COUNT(*) FROM parties').fetchone()}")
+
         if message.content == '$advotes': # recupere les votes en appelant https://discordbotlist.com/api/v1/bots/1086344574689095741/upvotes
             await message.channel.send(f"Nombre de votes sur dbl : {len(requests.get('https://discordbotlist.com/api/v1/bots/1086344574689095741/upvotes').json())}")
         
         if message.content == '$adstats': # affiche le nombre de serveurs et d'utilisateurs
-            await message.channel.send(f"Nombre de serveurs : {len(bot.guilds)}\nNombre d'utilisateurs : {len(bot.users)}")
+            await message.channel.send(f"Nombre de serveurs : {len(bot.guilds)}\nNombre d'utilisateurs : {len(bot.users)}\nNombres de parties totales : {c.execute('SELECT COUNT(*) FROM games').fetchone()[0]}")
 
         if message.content == '$adcreate': #crée un channel #botus si il n'yen a pas encore
             guild_id = message.guild.id
@@ -590,7 +623,7 @@ async def on_message(message):
             if await is_blacklisted(user_id) == False:
                 await blacklist(user_id)
                 await message.channel.send('Utilisateur blacklisté!')
-            elif await is_blacklisted(user_id) == True:
+            elif await is_blacklisted(user_id) is True:
                 await message.channel.send('Cet utilisateur est déjà blacklisté!')
             else:
                 await message.channel.send('Une erreur est survenue!')
