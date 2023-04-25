@@ -499,8 +499,9 @@ async def on_message(message):
 @bot.event
 async def on_command_error(ctx, error):
     # send message to 1092509916238979182
-    await bot.get_channel(1092509916238979182).send(f"Une erreur est survenue : {error} dans le serveur {ctx.guild.name} (id : {ctx.guild.id}) dans le channel #{ctx.channel.name} (id : {ctx.channel.id})")
-    raise error
+    if error != commands.CommandNotFound:
+        await bot.get_channel(1092509916238979182).send(f"Une erreur est survenue : {error} dans le serveur {ctx.guild.name} (id : {ctx.guild.id}) dans le channel #{ctx.channel.name} (id : {ctx.channel.id})")
+        raise error
 
 # Regarde si la commande existe
 
@@ -543,8 +544,6 @@ async def on_message(message):
                 await message.channel.send('BOOMER :slight_smile:')
             elif roll <= 3:
                 await message.channel.send('Le reuf')
-            elif roll < 1:
-                await message.channel.send('Maintenant on peut avancer, comme un bateau à vapeur sur le Mississippi ! :motorboat:')
 
     
     await bot.process_commands(message)
@@ -702,43 +701,57 @@ async def on_message(message):
             await message.channel.send('Commandes admins secrètes envoyé en mp :ok_hand: :spy:')
 
     #verifie que le channel est bien botus
-    if message.channel.id == await get_channel_id(message.guild.id) and message.content.lower() in dico_fr:
-
-        if len(message.content) == len(await get_mot(message.guild.id)) and message.content.isalpha() and message.content.lower()[0] == str(await get_mot(message.guild.id))[0].lower(): #verifie que le mot respecte les conditions
-            status=""
-            correct=0
-
-            await add_tries(message.guild.id) #ajoute un essai
-            mot_emote=""
-            for letter in message.content: #ajoute les lettres dans mot_emote
-                mot_emote+=":regional_indicator_"+letter.lower()+": "
-            for letter_pos in range(len(message.content)): #verifie que chaque lettre est correcte
-                if message.content[letter_pos].lower() in str(await get_correct_letters(message.guild.id)).lower():
-                    if message.content[letter_pos].lower() == str(await get_correct_letters(message.guild.id))[letter_pos].lower():
-                        # ajoute un carré rouge a status
-                        status+=":red_square: "
-                        correct+=1
-                        if correct==len(await get_mot(message.guild.id)):
-                            await message.channel.send('Bravo <@'+ str(message.author.id) +'>, vous avez gagné! Le mot etait bien "' + str(await get_mot(message.guild.id)).upper() + '" ! :tada:')
-                            await add_win(message.author.id)
-                            await new_word(message.guild.id)
-                            await resetTries(message.guild.id)
-                            await message.channel.send('Nouveau mot (' + str(len(await get_mot(message.guild.id))) + ' lettres) : \n' + await game_status(message.guild.id))
-                            return
-                    else:
-                        # ajoute un carré jaune
-                        status+=":yellow_square: "
-                else:
-                    # ajoute un carré noir
-                    status+=":black_large_square: "
-            if await get_tries(message.guild.id)>6:
-                await message.channel.send('Vous avez perdu! Le mot etait "' + str(await get_mot(message.guild.id)).upper() + '".')
-                await add_lose(message.author.id)
-                await new_word(message.guild.id)
-                await resetTries(message.guild.id)
-                await message.channel.send('Nouveau mot (' + str(len(await get_mot(message.guild.id))) + ' lettres) : \n' + await game_status(message.guild.id))
+    if message.channel.id == await get_channel_id(message.guild.id):
+        if message.content.lower() in dico_fr:
+            
+            if message.content[0] == '.':
                 return
-            else:
-                await message.channel.send(mot_emote + "\n" + status + "\n" + str(await get_tries(message.guild.id))+'/6 essais')
+            
+            elif message.content[0].lower() != str(await get_mot(message.guild.id))[0].lower(): #verifie que le mot commence par la bonne lettre
+                await message.channel.send('Le mot doit commencer par la lettre "' + str(await get_mot(message.guild.id))[0].upper() + '" !')
+            
+            elif len(message.content)<len(await get_mot(message.guild.id)):
+                await message.channel.send('Le mot est plus long que ça!')
+            elif len(message.content)>len(await get_mot(message.guild.id)):
+                await message.channel.send('Le mot est plus court que ça!')
 
+            elif len(message.content) == len(await get_mot(message.guild.id)) and message.content.isalpha() and message.content.lower()[0] == str(await get_mot(message.guild.id))[0].lower(): #verifie que le mot respecte les conditions
+                status=""
+                correct=0
+
+                await add_tries(message.guild.id) #ajoute un essai
+                mot_emote=""
+                for letter in message.content: #ajoute les lettres dans mot_emote
+                    mot_emote+=":regional_indicator_"+letter.lower()+": "
+                for letter_pos in range(len(message.content)): #verifie que chaque lettre est correcte
+                    if message.content[letter_pos].lower() in str(await get_correct_letters(message.guild.id)).lower():
+                        if message.content[letter_pos].lower() == str(await get_correct_letters(message.guild.id))[letter_pos].lower():
+                            # ajoute un carré rouge a status
+                            status+=":red_square: "
+                            correct+=1
+                            if correct==len(await get_mot(message.guild.id)):
+                                await message.channel.send('Bravo <@'+ str(message.author.id) +'>, vous avez gagné! Le mot etait bien "' + str(await get_mot(message.guild.id)).upper() + '" ! :tada:')
+                                await add_win(message.author.id)
+                                await new_word(message.guild.id)
+                                await resetTries(message.guild.id)
+                                await message.channel.send('Nouveau mot (' + str(len(await get_mot(message.guild.id))) + ' lettres) : \n' + await game_status(message.guild.id))
+                                return
+                        else:
+                            # ajoute un carré jaune
+                            status+=":yellow_square: "
+                    else:
+                        # ajoute un carré noir
+                        status+=":black_large_square: "
+                if await get_tries(message.guild.id)>6:
+                    await message.channel.send('Vous avez perdu! Le mot etait "' + str(await get_mot(message.guild.id)).upper() + '".')
+                    await add_lose(message.author.id)
+                    await new_word(message.guild.id)
+                    await resetTries(message.guild.id)
+                    await message.channel.send('Nouveau mot (' + str(len(await get_mot(message.guild.id))) + ' lettres) : \n' + await game_status(message.guild.id))
+                    return
+                else:
+                    await message.channel.send(mot_emote + "\n" + status + "\n" + str(await get_tries(message.guild.id))+'/6 essais')
+            
+        elif message.content.lower()[0] != ".":
+            await message.channel.send('Le mot doit etre dans le dictionnaire !')
 bot.run(TOKEN) #run bot
