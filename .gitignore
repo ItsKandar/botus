@@ -3,3 +3,4 @@ __pycache__/
 botus.db
 sql.py
 mots/__pycache__/
+.vscode
