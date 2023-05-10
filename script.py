@@ -1,19 +1,16 @@
 import discord
 from discord import app_commands
 from discord.ext import commands
-import sqlite3
 import random
 import requests
 from mots.mots import mots_fr
 from mots.dico import dico_fr
 from create_db import *
-from config import RE_TOKEN, DEV_ID, DEV_TOKEN, DEVMODE
+from config import *
 
 # Créer ou ouvrir la base de données SQLite
 create_db()
 
-CHANNEL_NAME = 'botus'
-TOKEN=''
 intents = discord.Intents.default()
 intents.message_content = True
 intents.messages = True
