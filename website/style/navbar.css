@@ -1,0 +1,58 @@
+*, ::before, ::after{
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+.d-flex{
+    display: flex;
+    align-items: center;
+}
+
+nav{
+    background: rgb(230,43,9);
+    background: linear-gradient(to right, rgba(230,43,9,1) 0%, rgba(200,42,14,1) 60%, rgba(140,40,24,1) 100%);
+}
+
+#grid-container{
+    align-items: center;
+    display: grid;
+    grid-template: 120px / repeat(24, 1fr);
+    list-style: none;
+}
+
+#logo-el{
+    padding-left: 30px;
+    grid-column: 1 / 2;
+}
+
+#logo{
+    width: 75px;
+    height: 75px;
+    border-radius: 50%;
+    box-shadow: 0 0 10px black;
+}
+
+#discord{
+    grid-column: 20 / 23;
+    flex-direction: column;
+    color: whitesmoke;
+    font-weight: bold;
+}
+
+#account{
+    grid-column: 23 / -1;
+    flex-direction: column;
+    color: whitesmoke;
+    font-weight: bold;
+    flex-direction: column;
+}
+
+.user-link{
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-decoration: none;
+    color: whitesmoke;
+}
+
