@@ -5,6 +5,7 @@ discord.ext
 sqlite3
 random
 requests
+sys
 
 
 and a config.py with :
