@@ -1,3 +1,5 @@
+REQUIREMENTS FOR THE BOT TO WORK :
+
 discord
 discord.ext
 sqlite3
