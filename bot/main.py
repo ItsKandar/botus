@@ -5,8 +5,9 @@ from discord.ext import commands
 import requests
 from mots.mots import mots_fr
 from mots.dico import dico_fr
-from bot.dbo.create_db import *
-from bot.config import *
+from dbo.controller import *
+from dbo.create_db import *
+from config import *
 
 # Créer ou ouvrir la base de données SQLite
 create_db()

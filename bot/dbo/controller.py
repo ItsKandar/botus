@@ -1,6 +1,7 @@
 import sqlite3
-from script import get_bot
+from main import get_bot
 conn = sqlite3.connect("botus.db")
+c = conn.cursor()
 bot=get_bot()
 
 async def resetTries(guild_id):
@@ -62,7 +63,8 @@ async def add_lose(user_id):
     loses = await get_loses(user_id)
     c.execute("UPDATE users SET loses=loses+1 WHERE user_id=?", (user_id,))
     conn.commit()
-    async def get_leaderboard():
+
+async def get_leaderboard():
     leaderboard=""
     c.execute("SELECT user_id, wins FROM users WHERE wins IS NOT NULL ORDER BY wins DESC")
     rows = c.fetchall()
