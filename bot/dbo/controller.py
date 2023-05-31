@@ -1,5 +1,5 @@
 import sqlite3
-from main import get_bot
+from main import get_bot, new_word
 conn = sqlite3.connect("botus.db")
 c = conn.cursor()
 bot=get_bot()

@@ -5,7 +5,7 @@ from discord.ext import commands
 import requests
 from mots.mots import mots_fr
 from mots.dico import dico_fr
-from dbo.controller import *
+from dbo.controller import is_blacklisted
 from dbo.create_db import *
 from config import *
 
