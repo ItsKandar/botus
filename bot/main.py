@@ -269,7 +269,9 @@ async def on_message(message):
     if message.author.id in DEV_ID: #admin commands :)
 
         if message.content == '$adcountusers': #compte le nombre d'utilisateurs
-            await message.channel.send(f"Nombre d'utilisateurs : {c.execute('SELECT COUNT(*) FROM users').fetchall()}")
+            nb_users = {c.execute('SELECT COUNT(*) FROM users').fetchall()}
+            nb_users_done = nb_users.strip("[(,)]")
+            await message.channel.send(f"Nombre d'utilisateurs : ",nb_users_done)
 
         if message.content == '$adcountservers': #compte le nombre de serveurs
             await message.channel.send(f"Nombre de serveurs : {len(bot.guilds)}")
