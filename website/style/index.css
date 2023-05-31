@@ -17,7 +17,7 @@ section{
     height: 80vh;
     width: 300px;
     text-align: center;
-    border: solid 1px black;
+    /* border: solid 2px #c82a0e; */
     border-radius: 10px;
 }
 
@@ -42,6 +42,8 @@ h2{
     height: 80vh;
     width: 100%;
     margin: 0 100px;
+    border: solid 2px #c82a0e;
+    border-radius: 15px;
 }
 
 .play-btn{
@@ -50,11 +52,9 @@ h2{
     font-family: 'Poller One', cursive;
     border: none;
     border-radius: 15px;
-    background: rgb(200,42,14);
-    background: radial-gradient(circle, rgba(200,42,14,1) 46%, rgba(140,40,24,1) 95%);
+    background: radial-gradient(circle, rgb(230,43,9) 0%, rgb(200,42,14) 100%);
 }
 
 .play-btn:hover{
-    background: rgb(230,43,9);
-    background: radial-gradient(circle, rgba(230,43,9,1) 0%, rgba(200,42,14,1) 100%);
+    background: radial-gradient(circle, rgb(200,42,14) 70%, rgb(140,40,24) 95%);
 }
