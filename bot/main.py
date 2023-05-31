@@ -269,9 +269,6 @@ async def on_message(message):
     await bot.process_commands(message)
     if message.author.id in DEV_ID: #admin commands :)
 
-        if message.content == '$ping': #compte le nombre d'utilisateurs
-                    await message.channel.send(f"PONG PD")
-
         if message.content == '$adcountusers': #compte le nombre d'utilisateurs
             nb_users = str(c.execute('SELECT COUNT(*) FROM users').fetchone()).replace("(", "").replace(")", "").replace(",", "")
             await message.channel.send(f"Nombre d'utilisateurs : {nb_users}")
