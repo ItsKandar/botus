@@ -5,8 +5,8 @@ from discord.ext import commands
 import requests
 from mots.mots import mots_fr
 from mots.dico import dico_fr
-from dbo.controller import is_blacklisted
-from dbo.create_db import *
+from controller import *
+from create_db import *
 from config import *
 
 # Créer ou ouvrir la base de données SQLite
@@ -170,7 +170,7 @@ async def classement(ctx):
     elif await get_channel_id(ctx.guild.id) is None:
         await ctx.response.send_message("Veuillez définir un channel avec la commande `set`", ephemeral=True)
     elif await get_channel_id(ctx.guild.id) == ctx.channel.id:
-        await ctx.response.send_message('**CLASSEMENT GLOBAL**\n\n' + str(await get_leaderboard()))
+        await ctx.response.send_message('**CLASSEMENT GLOBAL**\n\n' + str(await get_leaderboard(bot)))
     else:
         await ctx.response.send_message("Channel incorrect!", ephemeral=True)
 
@@ -410,10 +410,10 @@ async def on_message(message):
             message.channel.send (await get_correct_letters(guild_id))
 
         if message.content == '$adgetusers':
-            await message.channel.send(await get_users())
+            await message.channel.send(await get_users(bot))
 
         if message.content == '$adgetservers':
-            await message.channel.send(await get_servers())
+            await message.channel.send(await get_servers(bot))
 
         if message.content == '$adhelp': #envoie en DM les commandes admins
             await message.author.send(':spy: Commandes secretes :spy:: \n\n$adcountusers : compte le nombre d\'users\n$adcountservers : compte le nombre de serveurs\n$adstats : affiche le nombre de serveurs et d\'utilisateurs\n $adblacklist : Blackliste un utilisateur \n $adunblacklist : Unblackliste un utilisateur \n $adaddwins : Ajoute une victoire a un utilisateur \n $admot : Montre le mot \n $adwin : Gagne la partie \n $adlose : Perd la partie \n $adreset : Remet le nombre d\'essais a 0 \n $adviewtries : Montre le nombre d\'essais \n $adviewguessed : Montre les lettres essayees \n $adresetguessed : Retire les lettres essayees \n $adletters : Montre les lettres correctes \n $adresetletters : Retire les lettres correctes \n $adgetusers : Montre la liste des utilisateurs \n $adgetservers : Montre la liste des serveurs \n $adhelp : Envoie en DM les commandes admins')
