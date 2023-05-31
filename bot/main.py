@@ -8,7 +8,6 @@ from mots.dico import dico_fr
 from controller import *
 from create_db import *
 from config import *
-import re
 
 # Créer ou ouvrir la base de données SQLite
 create_db()
