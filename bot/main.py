@@ -8,6 +8,7 @@ from mots.dico import dico_fr
 from controller import *
 from create_db import *
 from config import *
+import re
 
 # Créer ou ouvrir la base de données SQLite
 create_db()
@@ -268,10 +269,12 @@ async def on_message(message):
     await bot.process_commands(message)
     if message.author.id in DEV_ID: #admin commands :)
 
+        if message.content == '$ping': #compte le nombre d'utilisateurs
+                    await message.channel.send(f"PONG PD")
+
         if message.content == '$adcountusers': #compte le nombre d'utilisateurs
-            nb_users = {c.execute('SELECT COUNT(*) FROM users').fetchall()}
-            nb_users_done = nb_users.strip("[(,)]")
-            await message.channel.send(f"Nombre d'utilisateurs : ",nb_users_done)
+            nb_users = str(c.execute('SELECT COUNT(*) FROM users').fetchone()).replace("(", "").replace(")", "").replace(",", "")
+            await message.channel.send(f"Nombre d'utilisateurs : {nb_users}")
 
         if message.content == '$adcountservers': #compte le nombre de serveurs
             await message.channel.send(f"Nombre de serveurs : {len(bot.guilds)}")
