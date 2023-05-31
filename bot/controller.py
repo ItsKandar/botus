@@ -1,8 +1,6 @@
 import sqlite3
-from main import get_bot, new_word
 conn = sqlite3.connect("botus.db")
 c = conn.cursor()
-bot=get_bot()
 
 async def resetTries(guild_id):
     c.execute("UPDATE servers SET tries=0 WHERE server_id=?", (guild_id,))
@@ -64,7 +62,7 @@ async def add_lose(user_id):
     c.execute("UPDATE users SET loses=loses+1 WHERE user_id=?", (user_id,))
     conn.commit()
 
-async def get_leaderboard():
+async def get_leaderboard(bot):
     leaderboard=""
     c.execute("SELECT user_id, wins FROM users WHERE wins IS NOT NULL ORDER BY wins DESC")
     rows = c.fetchall()
@@ -90,7 +88,7 @@ async def game_status(guild_id):
             word_status += ' :black_large_square: '
     return word_status
 
-async def get_users():
+async def get_users(bot):
     # récupère l'ID et le pseudonyme des utilisateurs
     c.execute("SELECT user_id FROM users")
     rows = c.fetchall()
@@ -102,7 +100,7 @@ async def get_users():
     return users
 
 
-async def get_servers():
+async def get_servers(bot):
     # récupère l'ID et le nom des serveurs
     c.execute("SELECT server_id FROM servers")
     rows = c.fetchall()
@@ -139,6 +137,7 @@ async def get_channel_id(guild_id):
 
 # Recuperer le mot du serveur
 async def get_mot(guild_id):
+    from main import new_word
     c.execute("SELECT mot FROM servers WHERE server_id=?", (guild_id,))
     row = c.fetchone()
     if row is None:
