@@ -463,8 +463,5 @@ async def on_message(message):
                     return
                 else:
                     await message.channel.send(mot_emote + "\n" + status + "\n" + str(await get_tries(message.guild.id))+'/6 essais')
-            
-        elif message.content.lower()[0] != ".":
-            await message.channel.send('Le mot doit etre dans le dictionnaire !')
 
 bot.run(TOKEN) #run bot
