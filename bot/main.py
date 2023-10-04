@@ -1,3 +1,5 @@
+# Il faut que je reorganise ce script (un jour)
+
 import random
 import discord
 from discord import app_commands
