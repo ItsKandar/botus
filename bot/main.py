@@ -426,14 +426,6 @@ async def on_message(message):
             
             if message.content[0] == '.':
                 return
-            
-            elif message.content[0].lower() != str(await get_mot(message.guild.id))[0].lower(): #verifie que le mot commence par la bonne lettre
-                await message.channel.send('Le mot doit commencer par la lettre "' + str(await get_mot(message.guild.id))[0].upper() + '" !')
-            
-            elif len(message.content)<len(await get_mot(message.guild.id)):
-                await message.channel.send('Le mot est plus long que ça!')
-            elif len(message.content)>len(await get_mot(message.guild.id)):
-                await message.channel.send('Le mot est plus court que ça!')
 
             elif len(message.content) == len(await get_mot(message.guild.id)) and message.content.isalpha() and message.content.lower()[0] == str(await get_mot(message.guild.id))[0].lower(): #verifie que le mot respecte les conditions
                 status=""
