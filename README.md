@@ -52,3 +52,13 @@ Commandes utilisateurs :
 5. Vous avez 6 essais, si vous trouvez le mot, le jeu se termine et vous gagnez. Sinon, continuez à proposer des mots jusqu'à ce que vous le trouviez ou que vous décidiez d'arrêter la partie en utilisant `fin`!
 
 Amusez-vous bien et bonne chance !
+
+
+===================== CHANGELOG 13/10/23 ===================== 
+
+- Ajout du nombre de lettre dans la commande /mot
+- Modification du nombre d'essai a 6 essais (anciennement 7)
+- Ajout du mot "Alien" dans le dictionnaire
+- Modification de la commande /suggest :
+    Anciennement "Suggère un mot ou nouvelle fonctionnalité"
+    Maintenant "Suggère une nouvelle fonctionnalité"
