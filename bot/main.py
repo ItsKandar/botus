@@ -148,7 +148,8 @@ async def get_leaderboard(bot):
 
 async def game_status(guild_id):
     word = await get_mot(guild_id)
-    word_status = ''
+    word_status = ""
+    word_status += '(' + str(len(word)) + ' lettres) : \n'
     word_status += ' :regional_indicator_' + word[0].lower() + ': '  # affiche la première lettre du mot
     for pos in range(1,len(word)):
         if word[pos] in await get_guessed_letters(guild_id):
@@ -358,7 +359,7 @@ async def start(ctx):
         await ctx.response.send_message("Veuillez définir un channel avec la commande `set`", ephemeral=True)
     elif await get_channel_id(ctx.guild.id) == ctx.channel.id:
         await new_word(ctx.guild.id)
-        await ctx.response.send_message('Nouveau mot (' + str(len(await get_mot(ctx.guild.id))) + ' lettres) : \n' + await game_status(ctx.guild.id))
+        await ctx.response.send_message('Nouveau mot ' + await game_status(ctx.guild.id))
     else:
         await ctx.response.send_message("Channel incorrect!, le channel defini est <#"+get_channel_id(ctx.guild.id)+">", ephemeral=True)
 
@@ -416,13 +417,11 @@ async def bug(ctx, message: str):
     await bot.get_channel(1090643512220983346).send("**<@&1090635527058898944>\nBUG REPORT DE " + str(ctx.user.display_name) + "**\n\n**LIEN DU REPORT**\n" + "a debug" + "\n\n**MESSAGE**\n" + message)
     await ctx.response.send_message('Le bug a été signalé, merci!', ephemeral=True)
 
-@bot.tree.command(name='suggest', description='Suggère un mot ou une nouvelle fonctionnalité')
+@bot.tree.command(name='suggest', description='Suggère une nouvelle fonctionnalité')
 async def suggest(ctx, message: str):
-    if message.lower() in mots_fr:
-        await ctx.response.send_message('Le mot "' + message.upper() + '" est déjà dans la liste!', ephemeral=True)
-    else:
-        await bot.get_channel(1090643533922304041).send("**<@&1090635527058898944>\nSUGGESTION DE " + str(ctx.user.display_name) + "**\n\n**LIEN DE LA SUGGESTION**\n" + "a debug" + "\n\n**MESSAGE**\n" + message)
-        await ctx.response.send_message('La suggestion a été envoyée, merci!', ephemeral=True)
+    await bot.get_channel(1090643533922304041).send("**<@&1090635527058898944>\nSUGGESTION DE " + str(ctx.user.display_name) + " DANS LE SERVEUR **__" + ctx.guild.name + "__\n\n**MESSAGE**\n" + message)
+    await ctx.response.send_message('La suggestion a été envoyée, merci!', ephemeral=True)
+
 
 @bot.tree.command(name='mot', description='Affiche le mot en cours')
 async def mot(ctx):
@@ -513,7 +512,7 @@ async def on_message(message):
 @bot.event
 async def on_command_error(ctx, error):
     # send message to 1092509916238979182
-    if error != commands.CommandNotFound:
+    if str(error) != str(discord.ext.commands.errors.CommandNotFound):
         await bot.get_channel(1092509916238979182).send(f"Une erreur est survenue : {error} dans le serveur {ctx.guild.name} (id : {ctx.guild.id}) dans le channel #{ctx.channel.name} (id : {ctx.channel.id})")
         raise error
 
@@ -629,7 +628,8 @@ async def on_message(message):
             await message.channel.send('Status changé!')
 
         if message.content[:12] == '$adblacklist': #blacklist quelqu'un
-            user_id = message.mentions[0].id
+            user_id = message.content[13:]
+            await message.channel.send(user_id)
             if await is_blacklisted(user_id) == False:
                 await blacklist(user_id)
                 await message.channel.send('Utilisateur blacklisté!')
@@ -639,7 +639,7 @@ async def on_message(message):
                 await message.channel.send('Une erreur est survenue!')
         
         if message.content[:14] == '$adunblacklist': #unblacklist quelqu'un
-            user_id = message.mentions[0].id
+            user_id = message.content[15:]
             if await is_blacklisted(user_id) == True:
                 await unblacklist(user_id)
             elif await is_blacklisted(user_id) == False:
@@ -745,7 +745,7 @@ async def on_message(message):
                     else:
                         # ajoute un carré noir
                         status+=":black_large_square: "
-                if await get_tries(message.guild.id)>6:
+                if await get_tries(message.guild.id)>5:
                     await message.channel.send('Vous avez perdu! Le mot etait "' + str(await get_mot(message.guild.id)).upper() + '".')
                     await add_lose(message.author.id)
                     await new_word(message.guild.id)

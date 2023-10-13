@@ -7460,6 +7460,7 @@ dico_fr = [
 "alicants",
 "alidade",
 "alidades",
+"alien",
 "aliena",
 "alienable",
 "alienables",
