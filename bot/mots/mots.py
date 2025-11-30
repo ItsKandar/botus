@@ -710,5 +710,14 @@ mots_fr = [
 "artisant",
 "jambon",
 "canoe",
-"titanic"
+"titanic",
+"apport",
+"maman",
+"miaou",
+"vertues",
+"produite",
+"canyon",
+"queer",
+"oestrogene",
+"pediluve"
 ]

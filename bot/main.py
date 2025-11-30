@@ -8,7 +8,8 @@ from discord.ext import commands
 import requests
 from mots.mots import mots_fr
 from mots.dico import dico_fr
-from config import *
+from config import DEVMODE, DEV_TOKEN, RE_TOKEN, DEV_ID, BLACKLIST
+CHANNEL_NAME = "botus"
 
 ###### DB #######
 
@@ -31,6 +32,7 @@ def column_exists(cursor, table_name, column_name):
 def create_db():
     # Créer les table "servers" et "users" si elles n'existent pas déjà
     c.execute("CREATE TABLE IF NOT EXISTS servers (server_id INTEGER PRIMARY KEY, prefix TEXT)")
+    print(column_exists(c, "servers", "channel_id"))
     c.execute("CREATE TABLE IF NOT EXISTS users (user_id INTEGER PRIMARY KEY, wins INTEGER)")
 
     # Créer les collumns de "servers" si elles n'existent pas déjà
@@ -147,7 +149,7 @@ async def get_leaderboard(bot):
 
 
 async def game_status(guild_id):
-    word = await get_mot(guild_id)
+    word = str(await get_mot(guild_id))
     word_status = ""
     word_status += '(' + str(len(word)) + ' lettres) : \n'
     word_status += ' :regional_indicator_' + word[0].lower() + ': '  # affiche la première lettre du mot
@@ -339,7 +341,7 @@ async def start(ctx):
         await new_word(ctx.guild.id)
         await ctx.response.send_message('Nouveau mot ' + await game_status(ctx.guild.id))
     else:
-        await ctx.response.send_message("Channel incorrect!, le channel defini est <#"+get_channel_id(ctx.guild.id)+">", ephemeral=True)
+        await ctx.response.send_message(f"Channel incorrect!, le channel defini est <#{await get_channel_id(ctx.guild.id)}>", ephemeral=True)
 
 @bot.tree.command(name='fin', description='Termine une partie')
 async def fin(ctx):
@@ -348,9 +350,10 @@ async def fin(ctx):
     elif await get_channel_id(ctx.guild.id) == ctx.channel.id:
         mot = str(await get_mot(ctx.guild.id)).upper()
         await new_word(ctx.guild.id)
-        await ctx.response.send_message('Le mot etait "' + mot + '".\nNouveau mot (' + str(len(await get_mot(ctx.guild.id))) + ' lettres) : \n' + await game_status(ctx.guild.id))
+        new_mot = str(await get_mot(ctx.guild.id))
+        await ctx.response.send_message('Le mot etait "' + mot + '".\nNouveau mot (' + str(len(new_mot)) + ' lettres) : \n' + await game_status(ctx.guild.id))
     else:
-        await ctx.response.send_message("Channel incorrect!, le channel defini est <#"+get_channel_id(ctx.guild.id)+">", ephemeral=True)
+        await ctx.response.send_message(f"Channel incorrect!, le channel defini est <#{await get_channel_id(ctx.guild.id)}>", ephemeral=True)
 
 @bot.tree.command(name='quoifeur', description='Active/Désactive le quoifeur')
 @app_commands.checks.has_permissions(administrator=True)
@@ -387,6 +390,20 @@ async def create(ctx):
         await guild.create_text_channel(CHANNEL_NAME)
     else:
         await ctx.response.send_message('Le channel existe déjà!', ephemeral=True)
+        
+@bot.tree.command(name="setmot", description="Définit le mot de la partie en cours")
+@app_commands.checks.has_permissions(administrator=True)
+@discord.app_commands.default_permissions(administrator=True)
+async def setmot(ctx, mot: str):
+    if len(mot) < 3 or len(mot) > 12 or not mot.isalpha() or mot.lower() not in dico_fr:
+        await ctx.response.send_message("Mot invalide! Le mot doit être un mot français entre 3 et 12 lettres.", ephemeral=True)
+        return
+    guild_id = ctx.guild.id
+    await add_mot(guild_id, mot.lower())
+    await resetTries(guild_id)
+    await reset_guessed_letters(guild_id)
+    await ctx.channel.send(await game_status(guild_id))
+    await ctx.response.send_message(f"Le mot a été défini sur '{mot.upper()}' !", ephemeral=True)
 
 @bot.tree.command(name='bug', description='Signale un bug')
 async def bug(ctx, message: str):
@@ -466,18 +483,6 @@ async def on_guild_join(guild):
     channel = bot.get_channel(1093581382581751888)
     await channel.send(f"Botus a rejoint le serveur {guild.name} ({guild.id}), contenant {guild.member_count} membres. Lien : https://discord.gg/{guild.invite.code}")
 
-# Surveiller les messages mentionnant le bot pour la commande get_prefix
-@bot.event
-async def on_message(message):
-    if message.author.bot:
-        return
-
-    if bot.user in message.mentions:
-        prefix = await get_prefix(bot, message)
-        await message.channel.send(f"Le préfixe actuel pour ce serveur est : `{prefix}`")
-
-    await bot.process_commands(message)
-
 @bot.event
 async def on_command_error(ctx, error):
     # send message to 1092509916238979182
@@ -497,7 +502,8 @@ async def on_message(message):
         return
 
     if bot.user in message.mentions:
-        ping()
+        latency = round(bot.latency * 1000)
+        await message.channel.send(f"Pong! Latence: {latency}ms")
 
     # Faites pas attention
     if await get_quoifeur(message.guild.id) == 1:
@@ -612,7 +618,7 @@ async def on_message(message):
             word= await get_mot(guild_id)
             await message.channel.send('Bravo, vous avez trouvé! Le mot etait bien "' + word.upper() + '" !')
             await new_word(guild_id)
-            await message.channel.send('Nouveau mot (' + str(len(word)) + ' lettres) : \n' + game_status(guild_id))
+            await message.channel.send('Nouveau mot (' + str(len(word)) + ' lettres) : \n' + await game_status(guild_id))
 
         if message.content[:7] == '$adlose': #perd la partie
             guild_id=message.content[8:]
@@ -659,6 +665,12 @@ async def on_message(message):
         if message.content == '$adhelp': #envoie en DM les commandes admins
             await message.author.send(':spy: Commandes secretes :spy:: \n\n$adcountusers : compte le nombre d\'users\n$adcountservers : compte le nombre de serveurs\n$adstats : affiche le nombre de serveurs et d\'utilisateurs\n $adaddwins : Ajoute une victoire a un utilisateur \n $admot : Montre le mot \n $adwin : Gagne la partie \n $adlose : Perd la partie \n $adreset : Remet le nombre d\'essais a 6 \n $adviewtries : Montre le nombre d\'essais \n $adviewguessed : Montre les lettres essayees \n $adresetguessed : Retire les lettres essayees \n $adletters : Montre les lettres correctes \n $adresetletters : Retire les lettres correctes \n $adgetusers : Montre la liste des utilisateurs \n $adgetservers : Montre la liste des serveurs \n $adhelp : Envoie en DM les commandes admins')
             await message.channel.send('Commandes admins secrètes envoyé en mp :ok_hand: :spy:')
+        
+        if message.content == '$adjoinserver': #renvoie le lien du serveur avec l'id specifié
+            guild_id = message.content[15:]
+            guild = bot.get_guild(int(guild_id))
+            invite = await guild.text_channels[0].create_invite(max_age = 300)
+            await message.channel.send(f"Lien d'invitation pour le serveur {guild.name} : {invite.url}")
 
     #verifie que le channel est bien botus
     if message.channel.id == await get_channel_id(message.guild.id):
