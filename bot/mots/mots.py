@@ -709,6 +709,15 @@ mots_fr = [
 "flandre",
 "artisant",
 "jambon",
-"Canoe",
-"titanic"
+"canoe",
+"titanic",
+"apport",
+"maman",
+"miaou",
+"vertues",
+"produite",
+"canyon",
+"queer",
+"oestrogene",
+"pediluve"
 ]
