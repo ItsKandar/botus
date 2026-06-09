@@ -84,11 +84,16 @@ def create_db():
         PRIMARY KEY (user_id, server_id)
     )""")
 
+    c.execute("CREATE TABLE IF NOT EXISTS blacklist (user_id INTEGER PRIMARY KEY)")
+
     conn.commit()
 
 ###### FIN DB #######
 
 create_db()
+
+blacklisted_users = set(BLACKLIST)
+blacklisted_users.update(row[0] for row in c.execute("SELECT user_id FROM blacklist").fetchall())
 
 ###### FONCTIONS #######
 
@@ -372,6 +377,13 @@ async def new_word(guild_id, override_length=None):
 
 bot = commands.Bot(command_prefix="$", intents=intents, help_command=None)
 
+@bot.tree.interaction_check
+async def global_interaction_check(interaction: discord.Interaction) -> bool:
+    if interaction.user.id in blacklisted_users:
+        await interaction.response.send_message("Vous êtes banni de Botus.", ephemeral=True)
+        return False
+    return True
+
 async def get_bot():
     return bot
 
@@ -614,6 +626,9 @@ async def on_message(message):
     if message.author == bot.user:
         return
 
+    if message.author.id in blacklisted_users:
+        return
+
     if bot.user in message.mentions:
         latency = round(bot.latency * 1000)
         await message.channel.send(f"Pong! Latence: {latency}ms")
@@ -774,6 +789,20 @@ async def on_message(message):
 
         if message.content == '$adgetservers':
             await message.channel.send(await get_servers(bot))
+
+        if message.content[:12] == '$adblacklist': #ajoute un user a la blacklist
+            user_id = int(message.content[13:])
+            blacklisted_users.add(user_id)
+            c.execute("INSERT OR IGNORE INTO blacklist (user_id) VALUES (?)", (user_id,))
+            conn.commit()
+            await message.channel.send(f"Utilisateur {user_id} ajouté à la blacklist.")
+
+        if message.content[:14] == '$adunblacklist': #retire un user de la blacklist
+            user_id = int(message.content[15:])
+            blacklisted_users.discard(user_id)
+            c.execute("DELETE FROM blacklist WHERE user_id=?", (user_id,))
+            conn.commit()
+            await message.channel.send(f"Utilisateur {user_id} retiré de la blacklist.")
 
         if message.content[:11] == '$advolaille': #active/desactive le mode volaille sur un serveur
             guild_id = int(message.content[12:])
