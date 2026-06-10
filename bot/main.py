@@ -2,18 +2,27 @@
 
 import random
 import sqlite3
+import unicodedata
 import discord
 from discord import app_commands
 from discord.ext import commands
 import requests
 from mots.mots import mots_fr
+from mots.secret import mots_fr as mots_volaille
 from mots.dico import dico_fr
 from config import DEVMODE, DEV_TOKEN, RE_TOKEN, DEV_ID, BLACKLIST
 CHANNEL_NAME = "botus"
 
+def normalize(text: str) -> str:
+    return ''.join(
+        c for c in unicodedata.normalize('NFD', text.lower())
+        if unicodedata.category(c) != 'Mn'
+    )
+
+
 ###### DB #######
 
-####################################################################
+############################################J########################
 # Crée les tables et les collumns de la db si elles n'existent pas #
 ####################################################################
 
@@ -60,6 +69,15 @@ def create_db():
     if not column_exists(c, "servers", "secret"):
         c.execute("ALTER TABLE servers ADD COLUMN secret BIT default 0")
 
+    if not column_exists(c, "servers", "word_length"):
+        c.execute("ALTER TABLE servers ADD COLUMN word_length INTEGER DEFAULT 0")
+
+    if not column_exists(c, "servers", "volaille"):
+        c.execute("ALTER TABLE servers ADD COLUMN volaille INTEGER DEFAULT 0")
+
+    if not column_exists(c, "servers", "server_wins"):
+        c.execute("ALTER TABLE servers ADD COLUMN server_wins INTEGER DEFAULT 0")
+
     conn.commit()
 
     # Créer les collums d'users si elles n'existent pas déjà
@@ -67,9 +85,23 @@ def create_db():
     if not column_exists(c, "users", "loses"):
         c.execute("ALTER TABLE users ADD COLUMN loses INTEGER")
 
+    c.execute("""CREATE TABLE IF NOT EXISTS user_server_wins (
+        user_id INTEGER,
+        server_id INTEGER,
+        wins INTEGER DEFAULT 0,
+        PRIMARY KEY (user_id, server_id)
+    )""")
+
+    c.execute("CREATE TABLE IF NOT EXISTS blacklist (user_id INTEGER PRIMARY KEY)")
+
     conn.commit()
 
 ###### FIN DB #######
+
+create_db()
+
+blacklisted_users = set(BLACKLIST)
+blacklisted_users.update(row[0] for row in c.execute("SELECT user_id FROM blacklist").fetchall())
 
 ###### FONCTIONS #######
 
@@ -124,28 +156,48 @@ async def get_loses(user_id):
     return loses
 
 async def add_win(user_id):
-    wins = await get_wins(user_id)
-    c.execute("UPDATE users SET wins=wins+1 WHERE user_id=?", (user_id,))
+    await get_wins(user_id)
+    c.execute("UPDATE users SET wins=COALESCE(wins,0)+1 WHERE user_id=?", (user_id,))
     conn.commit()
 
 async def add_lose(user_id):
-    loses = await get_loses(user_id)
-    c.execute("UPDATE users SET loses=loses+1 WHERE user_id=?", (user_id,))
+    await get_loses(user_id)
+    c.execute("UPDATE users SET loses=COALESCE(loses,0)+1 WHERE user_id=?", (user_id,))
     conn.commit()
 
-async def get_leaderboard(bot):
-    leaderboard=""
-    c.execute("SELECT user_id, wins FROM users WHERE wins IS NOT NULL ORDER BY wins DESC")
+async def add_server_win(guild_id):
+    c.execute("UPDATE servers SET server_wins=COALESCE(server_wins,0)+1 WHERE server_id=?", (guild_id,))
+    conn.commit()
+
+async def get_server_wins(guild_id):
+    c.execute("SELECT server_wins FROM servers WHERE server_id=?", (guild_id,))
+    row = c.fetchone()
+    return (row[0] or 0) if row else 0
+
+async def add_user_server_win(user_id, guild_id):
+    c.execute("""INSERT INTO user_server_wins (user_id, server_id, wins) VALUES (?, ?, 1)
+                 ON CONFLICT(user_id, server_id) DO UPDATE SET wins=wins+1""", (user_id, guild_id))
+    conn.commit()
+
+async def get_server_leaderboard(guild_id, bot):
+    leaderboard = ""
+    c.execute("SELECT user_id, wins FROM user_server_wins WHERE server_id=? AND wins > 0 ORDER BY wins DESC", (guild_id,))
     rows = c.fetchall()
-    for row in rows:
-        user_id = row[0]
+    for i, row in enumerate(rows, 1):
+        user = await bot.fetch_user(row[0])
         wins = row[1]
-        if wins is not None:
-            user = await bot.fetch_user(user_id)
-            username = user.name
-            tag = user.discriminator
-            leaderboard += f"{username}#{tag} : {wins} victoires\n"
-    return leaderboard
+        leaderboard += f"**{i}.** {user.name} : {wins} victoire{'s' if wins > 1 else ''}\n"
+    return leaderboard if leaderboard else "Aucune victoire enregistrée sur ce serveur!"
+
+async def get_global_leaderboard(bot):
+    leaderboard = ""
+    c.execute("SELECT user_id, wins FROM users WHERE wins IS NOT NULL AND wins > 0 ORDER BY wins DESC")
+    rows = c.fetchall()
+    for i, row in enumerate(rows, 1):
+        user = await bot.fetch_user(row[0])
+        wins = row[1]
+        leaderboard += f"**{i}.** {user.name} : {wins} victoire{'s' if wins > 1 else ''}\n"
+    return leaderboard if leaderboard else "Aucune victoire enregistrée pour l'instant!"
 
 
 async def game_status(guild_id):
@@ -208,15 +260,15 @@ async def get_channel_id(guild_id):
     return channel_id
 
 # Recuperer le mot du serveur
-async def get_mot(guild_id):
+async def get_mot(guild_id) -> str:
     c.execute("SELECT mot FROM servers WHERE server_id=?", (guild_id,))
     row = c.fetchone()
     if row is None:
-        mot = new_word(guild_id)
+        mot = await new_word(guild_id)
         c.execute("INSERT INTO servers (server_id, mot) VALUES (?, ?)", (guild_id, mot))
         conn.commit()
     else:
-        mot = row[0]
+        mot = str(row[0])
     return mot
 
 async def add_mot(guild_id, mot):
@@ -284,6 +336,25 @@ async def get_quoifeur(guild_id):
         quoifeur = row[0]
     return quoifeur
 
+async def get_secret(guild_id):
+    c.execute("SELECT secret FROM servers WHERE server_id=?", (guild_id,))
+    row = c.fetchone()
+    return (row[0] or 0) if row else 0
+
+async def set_secret(guild_id, value):
+    c.execute("UPDATE servers SET secret=? WHERE server_id=?", (value, guild_id))
+    conn.commit()
+
+async def get_volaille(guild_id):
+    c.execute("SELECT volaille FROM servers WHERE server_id=?", (guild_id,))
+    row = c.fetchone()
+    return (row[0] or 0) if row else 0
+
+async def get_word_length(guild_id):
+    c.execute("SELECT word_length FROM servers WHERE server_id=?", (guild_id,))
+    row = c.fetchone()
+    return (row[0] or 0) if row else 0
+
 ###### FIN FONCTIONS #######
 
 intents = discord.Intents.default()
@@ -295,16 +366,31 @@ if DEVMODE:
 else:
     TOKEN=RE_TOKEN
 
-async def new_word(guild_id):
-    word = random.choice(mots_fr)
+async def new_word(guild_id, override_length=None):
+    volaille = await get_volaille(guild_id)
+    length = override_length if override_length is not None else await get_word_length(guild_id)
+    word_list = mots_volaille if volaille else mots_fr
+    if length > 0:
+        filtered = [w for w in word_list if len(normalize(w)) == length]
+        word = normalize(random.choice(filtered if filtered else word_list))
+    else:
+        word = normalize(random.choice(word_list))
     await reset_correct_letters(guild_id)
     await reset_guessed_letters(guild_id)
     await resetTries(guild_id)
     await add_mot(guild_id, word)
     await add_partie(guild_id)
+    await set_secret(guild_id, 0)
     return word
 
 bot = commands.Bot(command_prefix="$", intents=intents, help_command=None)
+
+@bot.tree.interaction_check
+async def global_interaction_check(interaction: discord.Interaction) -> bool:
+    if interaction.user.id in blacklisted_users:
+        await interaction.response.send_message("Vous êtes banni de Botus.", ephemeral=True)
+        return False
+    return True
 
 async def get_bot():
     return bot
@@ -333,12 +419,15 @@ async def ping(ctx):
     latency = round(bot.latency * 1000)
     await ctx.response.send_message(f"Pong! Latence: {latency}ms")
 
-@bot.tree.command(name='start', description='Démarre une partie')
-async def start(ctx):
+@bot.tree.command(name='start', description='Démarre une partie (optionnel : choisir le nombre de lettres)')
+async def start(ctx, nb_lettres: int | None = None):
+    if nb_lettres is not None and (nb_lettres < 2 or nb_lettres > 20):
+        await ctx.response.send_message("Nombre de lettres invalide! (entre 2 et 20)", ephemeral=True)
+        return
     if await get_channel_id(ctx.guild.id) is None:
         await ctx.response.send_message("Veuillez définir un channel avec la commande `set`", ephemeral=True)
     elif await get_channel_id(ctx.guild.id) == ctx.channel.id:
-        await new_word(ctx.guild.id)
+        await new_word(ctx.guild.id, override_length=nb_lettres)
         await ctx.response.send_message('Nouveau mot ' + await game_status(ctx.guild.id))
     else:
         await ctx.response.send_message(f"Channel incorrect!, le channel defini est <#{await get_channel_id(ctx.guild.id)}>", ephemeral=True)
@@ -369,6 +458,21 @@ async def quoifeur(ctx, arg: str):
     conn.commit()
     await ctx.response.send_message(f"Quoifeur {'activé' if quoifeur else 'désactivé'}!")
 
+@bot.tree.command(name='longueur', description='Définit la longueur des mots (0 = aléatoire)')
+@app_commands.checks.has_permissions(administrator=True)
+@discord.app_commands.default_permissions(administrator=True)
+async def longueur(ctx, taille: int):
+    if taille < 0 or taille > 20:
+        await ctx.response.send_message('Taille invalide! (0-20, 0 = aléatoire)', ephemeral=True)
+        return
+    guild_id = ctx.guild.id
+    c.execute("UPDATE servers SET word_length=? WHERE server_id=?", (taille, guild_id))
+    conn.commit()
+    if taille == 0:
+        await ctx.response.send_message("Longueur des mots : aléatoire. Le prochain mot appliquera ce réglage.")
+    else:
+        await ctx.response.send_message(f"Longueur des mots définie sur **{taille}** lettres. Le prochain mot appliquera ce réglage.")
+
 @bot.tree.command(name='set', description='Définit le channel de jeu')
 @app_commands.checks.has_permissions(administrator=True)
 @discord.app_commands.default_permissions(administrator=True)
@@ -391,19 +495,20 @@ async def create(ctx):
     else:
         await ctx.response.send_message('Le channel existe déjà!', ephemeral=True)
         
-@bot.tree.command(name="setmot", description="Définit le mot de la partie en cours")
+@bot.tree.command(name="setmot", description="Impose le mot à deviner (hors classement)")
 @app_commands.checks.has_permissions(administrator=True)
 @discord.app_commands.default_permissions(administrator=True)
 async def setmot(ctx, mot: str):
-    if len(mot) < 3 or len(mot) > 12 or not mot.isalpha() or mot.lower() not in dico_fr:
-        await ctx.response.send_message("Mot invalide! Le mot doit être un mot français entre 3 et 12 lettres.", ephemeral=True)
+    if len(mot) < 2 or len(mot) > 20 or not mot.isalpha():
+        await ctx.response.send_message("Mot invalide! Le mot doit avoir entre 2 et 20 lettres (lettres uniquement).", ephemeral=True)
         return
     guild_id = ctx.guild.id
-    await add_mot(guild_id, mot.lower())
+    await add_mot(guild_id, normalize(mot))
     await resetTries(guild_id)
     await reset_guessed_letters(guild_id)
+    await set_secret(guild_id, 1)
     await ctx.channel.send(await game_status(guild_id))
-    await ctx.response.send_message(f"Le mot a été défini sur '{mot.upper()}' !", ephemeral=True)
+    await ctx.response.send_message(f"Le mot a été défini sur '{mot.upper()}' ! (cette partie ne compte pas dans le classement)", ephemeral=True)
 
 @bot.tree.command(name='bug', description='Signale un bug')
 async def bug(ctx, message: str):
@@ -437,16 +542,44 @@ async def stats(ctx):
         if await get_wins(ctx.user.id) is None:
             await ctx.response.send_message('Vous n\'avez pas encore de victoires!')
         else:
-            await ctx.response.send_message('Vous avez **' + str(await get_wins(ctx.user.id)) + '** victoires.')
+            wins = await get_wins(ctx.user.id) or 0
+            loses = await get_loses(ctx.user.id) or 0
+            await ctx.response.send_message(f'Vous avez **{wins}** victoire{"s" if wins > 1 else ""} et **{loses}** défaite{"s" if loses > 1 else ""}.')
     else:
         await ctx.response.send_message("Channel incorrect!", ephemeral=True)
 
-@bot.tree.command(name='classement', description='Affiche le classement global')
+@bot.tree.command(name='classement', description='Affiche le classement du serveur')
 async def classement(ctx):
     if await get_channel_id(ctx.guild.id) is None:
         await ctx.response.send_message("Veuillez définir un channel avec la commande `set`", ephemeral=True)
     elif await get_channel_id(ctx.guild.id) == ctx.channel.id:
-        await ctx.response.send_message('**CLASSEMENT GLOBAL**\n\n' + str(await get_leaderboard(bot)))
+        server_wins = await get_server_wins(ctx.guild.id)
+        header = f'**CLASSEMENT DU SERVEUR** — {server_wins} victoire{"s" if server_wins > 1 else ""} au total\n\n'
+        await ctx.response.send_message(header + await get_server_leaderboard(ctx.guild.id, bot))
+    else:
+        await ctx.response.send_message("Channel incorrect!", ephemeral=True)
+
+@bot.tree.command(name='global', description='Affiche le classement global tous serveurs confondus')
+async def global_classement(ctx):
+    if await get_channel_id(ctx.guild.id) is None:
+        await ctx.response.send_message("Veuillez définir un channel avec la commande `set`", ephemeral=True)
+    elif await get_channel_id(ctx.guild.id) == ctx.channel.id:
+        c.execute("SELECT server_id, server_wins FROM servers WHERE server_wins > 0 ORDER BY server_wins DESC")
+        server_rows = c.fetchall()
+        servers_section = ""
+        for row in server_rows:
+            try:
+                guild = await bot.fetch_guild(row[0])
+                wins = row[1]
+                servers_section += f"**{guild.name}** — {wins} victoire{'s' if wins > 1 else ''}\n"
+            except Exception:
+                pass
+        players_section = await get_global_leaderboard(bot)
+        msg = "**CLASSEMENT GLOBAL**\n\n"
+        if servers_section:
+            msg += f"**Serveurs :**\n{servers_section}\n"
+        msg += f"**Top joueurs :**\n{players_section}"
+        await ctx.response.send_message(msg)
     else:
         await ctx.response.send_message("Channel incorrect!", ephemeral=True)
 
@@ -462,9 +595,9 @@ async def help(ctx):
     embed = discord.Embed(title="Liste des commandes !", color=discord.Color.blue())
 
     if is_admin:
-        embed.add_field(name="Commandes Admins", value="`set` : définir le channel de jeu\n`create` : créer le channel de jeu\n`quoifeur (on/off)` : activer/désactiver le quoifeur", inline=False)
+        embed.add_field(name="Commandes Admins", value="`set` : définir le channel de jeu\n`create` : créer le channel de jeu\n`quoifeur (on/off)` : activer/désactiver le quoifeur\n`longueur <n>` : forcer une longueur de mot (0 = aléatoire)\n`setmot <mot>` : imposer un mot (hors classement)", inline=False)
 
-    embed.add_field(name="Commandes de jeu", value="`invite` : envoie le lien d'invitation du bot\n`ping` : renvoie la latence du bot\n`start` : commence une partie\n`fin` : finit une partie\n`mot` : affiche le mot en cours\n`bobo` : botus!\n`stats` : affiche vos statistiques\n`classement` : affiche le classement global\n`support` : affiche le lien du serveur Botus\n`bug` : signaler un bug\n`suggest` : proposer un mot\n`help` : affiche cette liste", inline=False)
+    embed.add_field(name="Commandes de jeu", value="`invite` : envoie le lien d'invitation du bot\n`ping` : renvoie la latence du bot\n`start` : commence une partie\n`fin` : finit une partie\n`mot` : affiche le mot en cours\n`bobo` : botus!\n`stats` : affiche vos statistiques\n`classement` : classement du serveur\n`global` : classement tous serveurs\n`support` : affiche le lien du serveur Botus\n`bug` : signaler un bug\n`suggest` : proposer un mot\n`help` : affiche cette liste", inline=False)
 
     await ctx.response.send_message(embed=embed, ephemeral=True)
 
@@ -486,7 +619,7 @@ async def on_guild_join(guild):
 @bot.event
 async def on_command_error(ctx, error):
     # send message to 1092509916238979182
-    if str(error) != str(discord.ext.commands.errors.CommandNotFound):
+    if not isinstance(error, commands.CommandNotFound):
         await bot.get_channel(1092509916238979182).send(f"Une erreur est survenue : {error} dans le serveur {ctx.guild.name} (id : {ctx.guild.id}) dans le channel #{ctx.channel.name} (id : {ctx.channel.id})")
         raise error
 
@@ -499,6 +632,9 @@ async def on_message(message):
 
     #ignore lui meme
     if message.author == bot.user:
+        return
+
+    if message.author.id in blacklisted_users:
         return
 
     if bot.user in message.mentions:
@@ -662,6 +798,28 @@ async def on_message(message):
         if message.content == '$adgetservers':
             await message.channel.send(await get_servers(bot))
 
+        if message.content[:12] == '$adblacklist': #ajoute un user a la blacklist
+            user_id = int(message.content[13:])
+            blacklisted_users.add(user_id)
+            c.execute("INSERT OR IGNORE INTO blacklist (user_id) VALUES (?)", (user_id,))
+            conn.commit()
+            await message.channel.send(f"Utilisateur {user_id} ajouté à la blacklist.")
+
+        if message.content[:14] == '$adunblacklist': #retire un user de la blacklist
+            user_id = int(message.content[15:])
+            blacklisted_users.discard(user_id)
+            c.execute("DELETE FROM blacklist WHERE user_id=?", (user_id,))
+            conn.commit()
+            await message.channel.send(f"Utilisateur {user_id} retiré de la blacklist.")
+
+        if message.content[:11] == '$advolaille': #active/desactive le mode volaille sur un serveur
+            guild_id = int(message.content[12:])
+            current = c.execute("SELECT volaille FROM servers WHERE server_id=?", (guild_id,)).fetchone()
+            new_val = 0 if (current and current[0]) else 1
+            c.execute("UPDATE servers SET volaille=? WHERE server_id=?", (new_val, guild_id))
+            conn.commit()
+            await message.channel.send(f"Mode volaille {'activé' if new_val else 'désactivé'} sur le serveur {guild_id}!")
+
         if message.content == '$adhelp': #envoie en DM les commandes admins
             await message.author.send(':spy: Commandes secretes :spy:: \n\n$adcountusers : compte le nombre d\'users\n$adcountservers : compte le nombre de serveurs\n$adstats : affiche le nombre de serveurs et d\'utilisateurs\n $adaddwins : Ajoute une victoire a un utilisateur \n $admot : Montre le mot \n $adwin : Gagne la partie \n $adlose : Perd la partie \n $adreset : Remet le nombre d\'essais a 6 \n $adviewtries : Montre le nombre d\'essais \n $adviewguessed : Montre les lettres essayees \n $adresetguessed : Retire les lettres essayees \n $adletters : Montre les lettres correctes \n $adresetletters : Retire les lettres correctes \n $adgetusers : Montre la liste des utilisateurs \n $adgetservers : Montre la liste des serveurs \n $adhelp : Envoie en DM les commandes admins')
             await message.channel.send('Commandes admins secrètes envoyé en mp :ok_hand: :spy:')
@@ -674,44 +832,64 @@ async def on_message(message):
 
     #verifie que le channel est bien botus
     if message.channel.id == await get_channel_id(message.guild.id):
-        if message.content.lower() in dico_fr or message.content.lower() in mots_fr:
-            
+        norm_content = normalize(message.content)
+        if norm_content in dico_fr or norm_content in mots_fr or norm_content in mots_volaille:
+
             if message.content[0] == '.':
                 return
 
-            elif len(message.content) == len(await get_mot(message.guild.id)) and message.content.isalpha() and message.content.lower()[0] == str(await get_mot(message.guild.id))[0].lower(): #verifie que le mot respecte les conditions
+            current_word = str(await get_mot(message.guild.id))
+            if len(norm_content) == len(current_word) and norm_content[0] == current_word[0]: #verifie que le mot respecte les conditions
                 status=""
                 correct=0
 
                 await add_tries(message.guild.id) #ajoute un essai
                 mot_emote=""
-                for letter in message.content: #ajoute les lettres dans mot_emote
-                    mot_emote+=":regional_indicator_"+letter.lower()+": "
-                for letter_pos in range(len(message.content)): #verifie que chaque lettre est correcte
-                    if message.content[letter_pos].lower() in str(await get_correct_letters(message.guild.id)).lower():
-                        if message.content[letter_pos].lower() == str(await get_correct_letters(message.guild.id))[letter_pos].lower():
-                            # ajoute un carré rouge a status
-                            status+=":red_square: "
-                            correct+=1
-                            if correct==len(await get_mot(message.guild.id)):
-                                await message.channel.send('Bravo <@'+ str(message.author.id) +'>, vous avez gagné! Le mot etait bien "' + str(await get_mot(message.guild.id)).upper() + '" ! :tada:')
-                                await add_win(message.author.id)
-                                await new_word(message.guild.id)
-                                await resetTries(message.guild.id)
-                                await message.channel.send('Nouveau mot (' + str(len(await get_mot(message.guild.id))) + ' lettres) : \n' + await game_status(message.guild.id))
-                                return
-                        else:
-                            # ajoute un carré jaune
-                            status+=":yellow_square: "
-                    else:
-                        # ajoute un carré noir
-                        status+=":black_large_square: "
-                if await get_tries(message.guild.id)>5:
-                    await message.channel.send('Vous avez perdu! Le mot etait "' + str(await get_mot(message.guild.id)).upper() + '".')
-                    await add_lose(message.author.id)
+                for letter in norm_content: #ajoute les lettres dans mot_emote
+                    mot_emote+=":regional_indicator_"+letter+": "
+                guess = norm_content
+                target = normalize(str(await get_correct_letters(message.guild.id)))
+                result: list[str | None] = [None] * len(guess)
+                target_available = list(target)
+
+                # passe 1 : positions exactes (rouge)
+                for i in range(len(guess)):
+                    if guess[i] == target_available[i]:
+                        result[i] = ':red_square: '
+                        target_available[i] = None
+                        correct += 1
+
+                if correct == len(target):
+                    await message.channel.send('Bravo <@'+ str(message.author.id) +'>, vous avez gagné! Le mot etait bien "' + target.upper() + '" ! :tada:')
+                    if not await get_secret(message.guild.id):
+                        await add_win(message.author.id)
+                        await add_server_win(message.guild.id)
+                        await add_user_server_win(message.author.id, message.guild.id)
                     await new_word(message.guild.id)
                     await resetTries(message.guild.id)
-                    await message.channel.send('Nouveau mot (' + str(len(await get_mot(message.guild.id))) + ' lettres) : \n' + await game_status(message.guild.id))
+                    next_word = await get_mot(message.guild.id)
+                    await message.channel.send('Nouveau mot (' + str(len(next_word)) + ' lettres) : \n' + await game_status(message.guild.id))
+                    return
+
+                # passe 2 : lettres présentes mais mal placées (jaune), limitées aux occurrences restantes
+                for i in range(len(guess)):
+                    if result[i] is not None:
+                        continue
+                    if guess[i] in target_available:
+                        result[i] = ':yellow_square: '
+                        target_available[target_available.index(guess[i])] = None
+                    else:
+                        result[i] = ':black_large_square: '
+
+                status = ''.join(r for r in result if r is not None)
+                if await get_tries(message.guild.id)>5:
+                    await message.channel.send('Vous avez perdu! Le mot etait "' + target.upper() + '".')
+                    if not await get_secret(message.guild.id):
+                        await add_lose(message.author.id)
+                    await new_word(message.guild.id)
+                    await resetTries(message.guild.id)
+                    next_word = await get_mot(message.guild.id)
+                    await message.channel.send('Nouveau mot (' + str(len(next_word)) + ' lettres) : \n' + await game_status(message.guild.id))
                     return
                 else:
                     await message.channel.send(mot_emote + "\n" + status + "\n" + str(6-await get_tries(message.guild.id))+'/6 essais restants')

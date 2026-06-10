@@ -1,20 +1,16 @@
-REQUIREMENTS FOR THE BOT TO WORK :
+#REQUIREMENTS FOR THE BOT TO WORK :
 
 discord
-discord.ext
-sqlite3
-random
 requests
-sys
 
 
-and a config.py with :
+#and a config.py with :
 
-a list called DEV_ID with the id of the bot owner
-RE_TOKEN with the token of the bot
-DEV_TOKEN with the token of the dev bot
-BLACKLIST with the id of the blacklisted users
-DEVMODE (True or False) to activate the dev mode
+#a list called DEV_ID with the id of the bot owner
+#RE_TOKEN with the token of the bot
+#DEV_TOKEN with the token of the dev bot
+#BLACKLIST with the id of the blacklisted users
+#DEVMODE (True or False) to activate the dev mode
 
 
-Launching the script for the first time will create a database called botus.db
+#Launching the script for the first time will create a database called botus.db
